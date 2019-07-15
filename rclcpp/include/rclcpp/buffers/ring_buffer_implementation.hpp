@@ -41,8 +41,8 @@ public:
   explicit RingBufferImplementation(size_t size)
   : ring_buffer_(size)
   {
-    _bufferSize = size;
-    write_ = _bufferSize - 1;
+    _buffer_size = size;
+    write_ = _buffer_size - 1;
     read_ = 0;
     _length = 0;
 
@@ -55,7 +55,7 @@ public:
 
   void enqueue(BufferT request)
   {
-    std::unique_lock<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
 
     write_ = next(write_);
     ring_buffer_[write_] = std::move(request);
@@ -65,27 +65,23 @@ public:
     } else {
       _length++;
     }
-
-    lock.unlock();
   }
 
   void dequeue(BufferT & request)
   {
     assert(has_data());
 
-    std::unique_lock<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
 
     request = std::move(ring_buffer_[read_]);
     read_ = next(read_);
 
     _length--;
-
-    lock.unlock();
   }
 
   inline uint32_t next(uint32_t val)
   {
-    return (val + 1) % _bufferSize;
+    return (val + 1) % _buffer_size;
   }
 
   bool has_data() const
@@ -95,7 +91,7 @@ public:
 
   inline bool is_full()
   {
-    return _length == _bufferSize;
+    return _length == _buffer_size;
   }
 
   void clear() {}
@@ -106,7 +102,7 @@ private:
   uint32_t write_;
   uint32_t read_;
   uint32_t _length;
-  uint32_t _bufferSize;
+  uint32_t _buffer_size;
 
   std::mutex mutex_;
 };
