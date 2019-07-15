@@ -60,8 +60,8 @@ struct SubscriptionFactory
   // Creates a SubscriptionIntraProcess<MessageT> object and returns it as a base.
   using SubscriptionIntraProcessFactoryFunction =
     std::function<rclcpp::SubscriptionIntraProcessBase::SharedPtr(
-        rclcpp::SubscriptionBase::SharedPtr sub_base,
         rclcpp::IntraProcessBufferType buffer_type,
+        const std::string & topic_name,
         const rcl_subscription_options_t & subscription_options)>;
 
   SubscriptionIntraProcessFactoryFunction create_typed_subscription_intra_process;
@@ -121,8 +121,8 @@ create_subscription_factory(
 
   factory.create_typed_subscription_intra_process =
     [any_subscription_callback](
-    rclcpp::SubscriptionBase::SharedPtr sub_base,
     rclcpp::IntraProcessBufferType buffer_type,
+    const std::string & topic_name,
     const rcl_subscription_options_t & subscription_options
     ) -> rclcpp::SubscriptionIntraProcessBase::SharedPtr
     {
@@ -136,16 +136,15 @@ create_subscription_factory(
         buffer_type,
         subscription_options);
 
-      using rclcpp::SubscriptionIntraProcessBase;
-
-      auto sub =
-        std::static_pointer_cast<SubscriptionT>(sub_base);
-
       auto sub_intra_process =
-        std::make_shared<SubscriptionIntraProcess<MessageT, Alloc>>(sub, buffer);
+        std::make_shared<SubscriptionIntraProcess<MessageT, Alloc>>(
+          any_subscription_callback,
+          topic_name,
+          subscription_options.qos,
+          buffer);
 
       auto sub_intra_process_base_ptr =
-        std::dynamic_pointer_cast<SubscriptionIntraProcessBase>(sub_intra_process);
+        std::dynamic_pointer_cast<rclcpp::SubscriptionIntraProcessBase>(sub_intra_process);
 
       return sub_intra_process_base_ptr;
     };

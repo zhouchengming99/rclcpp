@@ -125,13 +125,16 @@ NodeTopics::create_subscription(
       context->get_sub_context<rclcpp::intra_process_manager::IntraProcessManager>();
 
     // Create a subscription intra-process
+    // Note: topic_name does not include the namespace, use subscription->get_topic_name().
     auto subscription_intra_process = subscription_factory.create_typed_subscription_intra_process(
-      subscription, buffer_type, subscription_options);
+      buffer_type,
+      subscription->get_topic_name(),
+      subscription_options);
 
     // Register the subscription intra-process with the intra-process manager and get its id.
     uint64_t intra_process_subscription_id = ipm->add_subscription(subscription_intra_process);
 
-    // Store references to the intra-process manager and the subscription intra-process id
+    // Store references to the intra-process manager and the subscription intra-process id.
     subscription->setup_intra_process(
       intra_process_subscription_id,
       ipm);

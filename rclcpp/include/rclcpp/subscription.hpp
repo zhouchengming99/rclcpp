@@ -156,16 +156,6 @@ public:
     message_memory_strategy_->return_serialized_message(message);
   }
 
-  void handle_intra_process_message(ConstMessageSharedPtr message)
-  {
-    any_callback_.dispatch_intra_process(message, rmw_message_info_t());
-  }
-
-  void handle_intra_process_message(MessageUniquePtr message)
-  {
-    any_callback_.dispatch_intra_process(std::move(message), rmw_message_info_t());
-  }
-
   bool
   use_take_shared_method()
   {

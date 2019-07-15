@@ -89,12 +89,13 @@ public:
   using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
 
   using BufferSharedPtr = typename intra_process_buffer::IntraProcessBuffer<MessageT>::SharedPtr;
-  using SubscriptionSharedPtr = typename Subscription<MessageT, Alloc>::SharedPtr;
 
   SubscriptionIntraProcess(
-    SubscriptionSharedPtr subscription,
+    AnySubscriptionCallback<MessageT, Alloc> callback,
+    const std::string & topic_name,
+    rmw_qos_profile_t qos_profile,
     BufferSharedPtr buffer)
-  : subscription_(subscription), buffer_(buffer)
+  : any_callback_(callback), buffer_(buffer), topic_name_(topic_name), qos_profile_(qos_profile)
   {
     std::shared_ptr<rclcpp::Context> context_ptr =
       rclcpp::contexts::default_context::get_global_default_context();
@@ -129,14 +130,14 @@ public:
 
   void execute()
   {
-    if (subscription_->use_take_shared_method()) {
+    if (any_callback_.use_take_shared_method()) {
       ConstMessageSharedPtr msg;
       buffer_->consume(msg);
-      subscription_->handle_intra_process_message(msg);
+      any_callback_.dispatch_intra_process(msg, rmw_message_info_t());
     } else {
       MessageUniquePtr msg;
       buffer_->consume(msg);
-      subscription_->handle_intra_process_message(std::move(msg));
+      any_callback_.dispatch_intra_process(std::move(msg), rmw_message_info_t());
     }
   }
 
@@ -163,13 +164,13 @@ public:
   const char *
   get_topic_name() const
   {
-    return subscription_->get_topic_name();
+    return topic_name_.c_str();
   }
 
   rmw_qos_profile_t
   get_actual_qos() const
   {
-    return subscription_->get_actual_qos();
+    return qos_profile_;
   }
 
 private:
@@ -183,8 +184,11 @@ private:
   std::recursive_mutex reentrant_mutex_;
   rcl_guard_condition_t gc_;
 
-  SubscriptionSharedPtr subscription_;
+  AnySubscriptionCallback<MessageT, Alloc> any_callback_;
   BufferSharedPtr buffer_;
+
+  std::string topic_name_;
+  rmw_qos_profile_t qos_profile_;
 };
 
 }  // namespace rclcpp
