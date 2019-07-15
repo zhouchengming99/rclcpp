@@ -24,10 +24,10 @@
 #include <map>
 #include <memory>
 #include <mutex>
-#include <set>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 #include "rmw/validate_full_topic_name.h"
@@ -71,13 +71,13 @@ public:
   virtual size_t
   get_subscription_count(uint64_t intra_process_publisher_id) const = 0;
 
-  virtual std::set<uint64_t>
+  virtual std::unordered_set<uint64_t>
   get_all_matching_publishers(uint64_t intra_process_subscription_id) = 0;
 
   virtual void
   get_subscription_ids_for_pub(
-    std::set<uint64_t> & take_shared_ids,
-    std::set<uint64_t> & take_owned_ids,
+    std::unordered_set<uint64_t> & take_shared_ids,
+    std::unordered_set<uint64_t> & take_owned_ids,
     uint64_t intra_process_publisher_id) const = 0;
 
   virtual SubscriptionIntraProcessBase::SharedPtr
@@ -114,8 +114,8 @@ private:
 
   struct SplittedSubscriptions
   {
-    std::set<uint64_t> take_shared_subscriptions;
-    std::set<uint64_t> take_ownership_subscriptions;
+    std::unordered_set<uint64_t> take_shared_subscriptions;
+    std::unordered_set<uint64_t> take_ownership_subscriptions;
   };
 
   template<typename T>
@@ -191,7 +191,7 @@ public:
       subscription->use_take_shared_method();
 
     // adds the subscription id to all the matchable publishers
-    for (auto pair : publishers_) {
+    for (auto & pair : publishers_) {
       if (can_communicate(pair.second, subscriptions_[id])) {
         insert_sub_id_for_pub(id, pair.first, subscriptions_[id].use_take_shared_method);
       }
@@ -222,7 +222,7 @@ public:
     publishers_[id].options = publisher->get_actual_qos();
 
     // create an entry for the publisher id and populate with already existing subscriptions
-    for (auto pair : subscriptions_) {
+    for (auto & pair : subscriptions_) {
       if (can_communicate(publishers_[id], pair.second)) {
         insert_sub_id_for_pub(pair.first, id, pair.second.use_take_shared_method);
       }
@@ -269,8 +269,8 @@ public:
 
   void
   get_subscription_ids_for_pub(
-    std::set<uint64_t> & take_shared_ids,
-    std::set<uint64_t> & take_owned_ids,
+    std::unordered_set<uint64_t> & take_shared_ids,
+    std::unordered_set<uint64_t> & take_owned_ids,
     uint64_t intra_process_publisher_id) const
   {
     auto publisher_it = pub_to_subs_.find(intra_process_publisher_id);
@@ -283,12 +283,12 @@ public:
     take_owned_ids = publisher_it->second.take_ownership_subscriptions;
   }
 
-  std::set<uint64_t>
+  std::unordered_set<uint64_t>
   get_all_matching_publishers(uint64_t intra_process_subscription_id)
   {
-    std::set<uint64_t> res;
+    std::unordered_set<uint64_t> res;
 
-    for (auto pair : pub_to_subs_) {
+    for (auto & pair : pub_to_subs_) {
       auto publisher_id = pair.first;
       auto ownership_subs = pair.second.take_ownership_subscriptions;
       auto shared_subs = pair.second.take_shared_subscriptions;

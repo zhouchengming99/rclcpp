@@ -26,7 +26,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <utility>
-#include <set>
+#include <unordered_set>
 
 #include "rclcpp/allocator/allocator_deleter.hpp"
 #include "rclcpp/intra_process_manager_impl.hpp"
@@ -176,8 +176,8 @@ public:
     uint64_t intra_process_publisher_id,
     std::shared_ptr<const MessageT> message)
   {
-    std::set<uint64_t> take_shared_subscription_ids;
-    std::set<uint64_t> take_owned_subscription_ids;
+    std::unordered_set<uint64_t> take_shared_subscription_ids;
+    std::unordered_set<uint64_t> take_owned_subscription_ids;
 
     impl_->get_subscription_ids_for_pub(
       take_shared_subscription_ids,
@@ -225,8 +225,8 @@ public:
     uint64_t intra_process_publisher_id,
     std::unique_ptr<MessageT, Deleter> message)
   {
-    std::set<uint64_t> take_shared_subscription_ids;
-    std::set<uint64_t> take_owned_subscription_ids;
+    std::unordered_set<uint64_t> take_shared_subscription_ids;
+    std::unordered_set<uint64_t> take_owned_subscription_ids;
 
     impl_->get_subscription_ids_for_pub(
       take_shared_subscription_ids,
@@ -278,7 +278,7 @@ private:
   void
   add_shared_msg_to_buffers(
     std::shared_ptr<const MessageT> message,
-    std::set<uint64_t> subscription_ids)
+    std::unordered_set<uint64_t> subscription_ids)
   {
     for (auto it = subscription_ids.begin(); it != subscription_ids.end(); it++) {
       auto subscription_base = impl_->get_subscription(*it);
@@ -299,7 +299,7 @@ private:
   void
   add_owned_msg_to_buffers(
     std::unique_ptr<MessageT, Deleter> message,
-    std::set<uint64_t> subscription_ids)
+    std::unordered_set<uint64_t> subscription_ids)
   {
     for (auto it = subscription_ids.begin(); it != subscription_ids.end(); it++) {
       auto subscription_base = impl_->get_subscription(*it);
