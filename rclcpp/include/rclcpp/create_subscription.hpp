@@ -89,7 +89,7 @@ template<
   typename NodeT>
 typename std::shared_ptr<SubscriptionT>
 create_subscription(
-  NodeT & node,
+  NodeT && node,
   const std::string & topic_name,
   const rclcpp::QoS & qos,
   CallbackT && callback,
@@ -101,7 +101,7 @@ create_subscription(
   msg_mem_strat = nullptr)
 {
   using rclcpp::node_interfaces::get_node_topics_interface;
-  auto node_topics = get_node_topics_interface(node);
+  auto node_topics = get_node_topics_interface(std::forward<NodeT>(node));
 
   if (!msg_mem_strat) {
     using rclcpp::message_memory_strategy::MessageMemoryStrategy;
