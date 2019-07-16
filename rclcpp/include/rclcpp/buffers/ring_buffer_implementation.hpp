@@ -101,10 +101,10 @@ public:
 private:
   std::vector<BufferT> ring_buffer_;
 
-  uint32_t write_;
-  uint32_t read_;
-  uint32_t _length;
-  uint32_t _buffer_size;
+  int write_;
+  int read_;
+  size_t _length;
+  size_t _buffer_size;
 
   std::mutex mutex_;
 };
