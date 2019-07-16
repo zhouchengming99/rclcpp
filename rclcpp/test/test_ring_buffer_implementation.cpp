@@ -49,8 +49,7 @@ TEST(TestRingBufferImplementation, basic_usage) {
   EXPECT_EQ(true, rb.has_data());
   EXPECT_EQ(false, rb.is_full());
 
-  char v;
-  rb.dequeue(v);
+  char v = rb.dequeue();
 
   EXPECT_EQ('a', v);
   EXPECT_EQ(false, rb.has_data());
@@ -67,13 +66,13 @@ TEST(TestRingBufferImplementation, basic_usage) {
   EXPECT_EQ(true, rb.has_data());
   EXPECT_EQ(true, rb.is_full());
 
-  rb.dequeue(v);
+  v = rb.dequeue();
 
   EXPECT_EQ('c', v);
   EXPECT_EQ(true, rb.has_data());
   EXPECT_EQ(false, rb.is_full());
 
-  rb.dequeue(v);
+  v = rb.dequeue();
 
   EXPECT_EQ('d', v);
   EXPECT_EQ(false, rb.has_data());
