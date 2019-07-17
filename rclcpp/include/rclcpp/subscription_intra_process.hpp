@@ -95,7 +95,7 @@ public:
     const std::string & topic_name,
     rmw_qos_profile_t qos_profile,
     BufferUniquePtr buffer)
-  : any_callback_(callback), buffer_(buffer), topic_name_(topic_name), qos_profile_(qos_profile)
+  : any_callback_(callback), buffer_(std::move(buffer)), topic_name_(topic_name), qos_profile_(qos_profile)
   {
     std::shared_ptr<rclcpp::Context> context_ptr =
       rclcpp::contexts::default_context::get_global_default_context();
