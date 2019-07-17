@@ -38,16 +38,16 @@ template<typename BufferT>
 class RingBufferImplementation : public BufferImplementationBase<BufferT>
 {
 public:
-  explicit RingBufferImplementation(size_t size)
-  : ring_buffer_(size)
+  explicit RingBufferImplementation(size_t capacity)
+  : ring_buffer_(capacity)
   {
-    buffer_size_ = size;
-    write_ = buffer_size_ - 1;
-    read_ = 0;
-    length_ = 0;
+    capacity_ = capacity;
+    write_index_ = capacity_ - 1;
+    read_index_ = 0;
+    size_ = 0;
 
-    if (size == 0) {
-      throw std::invalid_argument("size must be a positive, non-zero value");
+    if (capacity == 0) {
+      throw std::invalid_argument("capacity must be a positive, non-zero value");
     }
   }
 
@@ -57,13 +57,13 @@ public:
   {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    write_ = next(write_);
-    ring_buffer_[write_] = std::move(request);
+    write_index_ = next(write_index_);
+    ring_buffer_[write_index_] = std::move(request);
 
     if (is_full()) {
-      read_ = next(read_);
+      read_index_ = next(read_index_);
     } else {
-      length_++;
+      size_++;
     }
   }
 
@@ -73,27 +73,27 @@ public:
 
     std::lock_guard<std::mutex> lock(mutex_);
 
-    auto request = std::move(ring_buffer_[read_]);
-    read_ = next(read_);
+    auto request = std::move(ring_buffer_[read_index_]);
+    read_index_ = next(read_index_);
 
-    length_--;
+    size_--;
 
     return request;
   }
 
   inline uint32_t next(uint32_t val)
   {
-    return (val + 1) % buffer_size_;
+    return (val + 1) % capacity_;
   }
 
   inline bool has_data() const
   {
-    return length_ != 0;
+    return size_ != 0;
   }
 
   inline bool is_full()
   {
-    return length_ == buffer_size_;
+    return size_ == capacity_;
   }
 
   void clear() {}
@@ -101,10 +101,10 @@ public:
 private:
   std::vector<BufferT> ring_buffer_;
 
-  int write_;
-  int read_;
-  size_t length_;
-  size_t buffer_size_;
+  int write_index_;
+  int read_index_;
+  size_t size_;
+  size_t capacity_;
 
   std::mutex mutex_;
 };

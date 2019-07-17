@@ -56,7 +56,7 @@ create_publisher(
 
   node_topics->add_publisher(pub, group);
 
-  return std::dynamic_pointer_cast<PublisherT>(pub);
+  return std::static_pointer_cast<PublisherT>(pub);
 }
 
 /// Create and return a publisher of the given MessageT type.
@@ -113,7 +113,7 @@ create_publisher(
     use_intra_process
   );
   node_topics->add_publisher(pub, options.callback_group);
-  return std::dynamic_pointer_cast<PublisherT>(pub);
+  return std::static_pointer_cast<PublisherT>(pub);
 }
 
 }  // namespace rclcpp

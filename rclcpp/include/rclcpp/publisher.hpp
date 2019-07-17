@@ -28,8 +28,6 @@
 #include "rcl/error_handling.h"
 #include "rcl/publisher.h"
 
-#include "rcl_interfaces/msg/intra_process_message.hpp"
-
 #include "rclcpp/allocator/allocator_common.hpp"
 #include "rclcpp/allocator/allocator_deleter.hpp"
 #include "rclcpp/intra_process_manager.hpp"

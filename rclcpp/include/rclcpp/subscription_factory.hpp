@@ -143,10 +143,7 @@ create_subscription_factory(
           subscription_options.qos,
           std::move(buffer));
 
-      auto sub_intra_process_base_ptr =
-        std::dynamic_pointer_cast<rclcpp::SubscriptionIntraProcessBase>(sub_intra_process);
-
-      return sub_intra_process_base_ptr;
+      return sub_intra_process;
     };
 
   // return the factory now that it is populated
