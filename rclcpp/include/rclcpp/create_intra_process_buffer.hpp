@@ -31,7 +31,7 @@ namespace rclcpp
 template<
   typename MessageT,
   typename Alloc>
-typename intra_process_buffer::IntraProcessBuffer<MessageT>::SharedPtr
+typename intra_process_buffer::IntraProcessBuffer<MessageT>::UniquePtr
 create_intra_process_buffer(
   IntraProcessBufferType buffer_type,
   const rcl_subscription_options_t & options
@@ -45,7 +45,7 @@ create_intra_process_buffer(
 
   size_t buffer_size = options.qos.depth;
 
-  typename intra_process_buffer::IntraProcessBuffer<MessageT>::SharedPtr buffer;
+  typename intra_process_buffer::IntraProcessBuffer<MessageT>::UniquePtr buffer;
 
   switch (buffer_type) {
     case IntraProcessBufferType::SharedPtr:
@@ -53,13 +53,13 @@ create_intra_process_buffer(
         using BufferT = ConstMessageSharedPtr;
 
         auto buffer_implementation =
-          std::make_shared<rclcpp::intra_process_buffer::RingBufferImplementation<BufferT>>(
+          std::make_unique<rclcpp::intra_process_buffer::RingBufferImplementation<BufferT>>(
           buffer_size);
 
         // construct the intra_process_buffer
         buffer =
-          std::make_shared<rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT,
-            BufferT>>(buffer_implementation);
+          std::make_unique<rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT,
+            BufferT>>(std::move(buffer_implementation));
 
         break;
       }
@@ -68,13 +68,13 @@ create_intra_process_buffer(
         using BufferT = MessageUniquePtr;
 
         auto buffer_implementation =
-          std::make_shared<rclcpp::intra_process_buffer::RingBufferImplementation<BufferT>>(
+          std::make_unique<rclcpp::intra_process_buffer::RingBufferImplementation<BufferT>>(
           buffer_size);
 
         // construct the intra_process_buffer
         buffer =
-          std::make_shared<rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT,
-            BufferT>>(buffer_implementation);
+          std::make_unique<rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT,
+            BufferT>>(std::move(buffer_implementation));
 
         break;
       }

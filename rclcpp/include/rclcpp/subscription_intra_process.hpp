@@ -88,13 +88,13 @@ public:
   using ConstMessageSharedPtr = std::shared_ptr<const MessageT>;
   using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
 
-  using BufferSharedPtr = typename intra_process_buffer::IntraProcessBuffer<MessageT>::SharedPtr;
+  using BufferUniquePtr = typename intra_process_buffer::IntraProcessBuffer<MessageT>::UniquePtr;
 
   SubscriptionIntraProcess(
     AnySubscriptionCallback<MessageT, Alloc> callback,
     const std::string & topic_name,
     rmw_qos_profile_t qos_profile,
-    BufferSharedPtr buffer)
+    BufferUniquePtr buffer)
   : any_callback_(callback), buffer_(buffer), topic_name_(topic_name), qos_profile_(qos_profile)
   {
     std::shared_ptr<rclcpp::Context> context_ptr =
@@ -183,7 +183,7 @@ private:
   rcl_guard_condition_t gc_;
 
   AnySubscriptionCallback<MessageT, Alloc> any_callback_;
-  BufferSharedPtr buffer_;
+  BufferUniquePtr buffer_;
 
   std::string topic_name_;
   rmw_qos_profile_t qos_profile_;

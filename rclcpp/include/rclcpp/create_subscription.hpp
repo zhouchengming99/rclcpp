@@ -19,7 +19,6 @@
 #include <string>
 #include <utility>
 
-#include "rclcpp/create_intra_process_buffer.hpp"
 #include "rclcpp/node_interfaces/get_node_topics_interface.hpp"
 #include "rclcpp/node_interfaces/node_topics_interface.hpp"
 #include "rclcpp/subscription_factory.hpp"

@@ -33,20 +33,20 @@ TEST(TestIntraProcessBuffer, constructor) {
     rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT, UniqueMessageT>;
 
   auto shared_buffer_impl =
-    std::make_shared<rclcpp::intra_process_buffer::RingBufferImplementation<SharedMessageT>>(2);
+    std::make_unique<rclcpp::intra_process_buffer::RingBufferImplementation<SharedMessageT>>(2);
 
   auto shared_intra_process_buffer =
-    std::make_shared<SharedIntraProcessBufferT>(shared_buffer_impl);
+    SharedIntraProcessBufferT(std::move(shared_buffer_impl));
 
-  EXPECT_EQ(true, shared_intra_process_buffer->use_take_shared_method());
+  EXPECT_EQ(true, shared_intra_process_buffer.use_take_shared_method());
 
   auto unique_buffer_impl =
-    std::make_shared<rclcpp::intra_process_buffer::RingBufferImplementation<UniqueMessageT>>(2);
+    std::make_unique<rclcpp::intra_process_buffer::RingBufferImplementation<UniqueMessageT>>(2);
 
   auto unique_intra_process_buffer =
-    std::make_shared<UniqueIntraProcessBufferT>(unique_buffer_impl);
+    UniqueIntraProcessBufferT(std::move(unique_buffer_impl));
 
-  EXPECT_EQ(false, unique_intra_process_buffer->use_take_shared_method());
+  EXPECT_EQ(false, unique_intra_process_buffer.use_take_shared_method());
 }
 
 /*
@@ -62,20 +62,20 @@ TEST(TestIntraProcessBuffer, shared_buffer_add) {
     rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT, SharedMessageT>;
 
   auto buffer_impl =
-    std::make_shared<rclcpp::intra_process_buffer::RingBufferImplementation<SharedMessageT>>(2);
+    std::make_unique<rclcpp::intra_process_buffer::RingBufferImplementation<SharedMessageT>>(2);
 
   auto intra_process_buffer =
-    std::make_shared<SharedIntraProcessBufferT>(buffer_impl);
+    SharedIntraProcessBufferT(std::move(buffer_impl));
 
   auto original_shared_msg = std::make_shared<char>('a');
   auto original_message_pointer = reinterpret_cast<std::uintptr_t>(original_shared_msg.get());
 
-  intra_process_buffer->add_shared(original_shared_msg);
+  intra_process_buffer.add_shared(original_shared_msg);
 
   EXPECT_EQ(2u, original_shared_msg.use_count());
 
   SharedMessageT popped_shared_msg;
-  popped_shared_msg = intra_process_buffer->consume_shared();
+  popped_shared_msg = intra_process_buffer.consume_shared();
   auto popped_message_pointer = reinterpret_cast<std::uintptr_t>(popped_shared_msg.get());
 
   EXPECT_EQ(original_shared_msg.use_count(), popped_shared_msg.use_count());
@@ -86,9 +86,9 @@ TEST(TestIntraProcessBuffer, shared_buffer_add) {
   original_message_pointer = reinterpret_cast<std::uintptr_t>(original_unique_msg.get());
   auto original_value = *original_unique_msg;
 
-  intra_process_buffer->add_unique(std::move(original_unique_msg));
+  intra_process_buffer.add_unique(std::move(original_unique_msg));
 
-  popped_shared_msg = intra_process_buffer->consume_shared();
+  popped_shared_msg = intra_process_buffer.consume_shared();
   popped_message_pointer = reinterpret_cast<std::uintptr_t>(popped_shared_msg.get());
 
   EXPECT_EQ(1u, popped_shared_msg.use_count());
@@ -109,20 +109,20 @@ TEST(TestIntraProcessBuffer, unique_buffer_add) {
     rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT, UniqueMessageT>;
 
   auto buffer_impl =
-    std::make_shared<rclcpp::intra_process_buffer::RingBufferImplementation<UniqueMessageT>>(2);
+    std::make_unique<rclcpp::intra_process_buffer::RingBufferImplementation<UniqueMessageT>>(2);
 
   auto intra_process_buffer =
-    std::make_shared<UniqueIntraProcessBufferT>(buffer_impl);
+    UniqueIntraProcessBufferT(std::move(buffer_impl));
 
   auto original_shared_msg = std::make_shared<char>('a');
   auto original_message_pointer = reinterpret_cast<std::uintptr_t>(original_shared_msg.get());
 
-  intra_process_buffer->add_shared(original_shared_msg);
+  intra_process_buffer.add_shared(original_shared_msg);
 
   EXPECT_EQ(1u, original_shared_msg.use_count());
 
   UniqueMessageT popped_unique_msg;
-  popped_unique_msg = intra_process_buffer->consume_unique();
+  popped_unique_msg = intra_process_buffer.consume_unique();
   auto popped_message_pointer = reinterpret_cast<std::uintptr_t>(popped_unique_msg.get());
 
   EXPECT_EQ(*original_shared_msg, *popped_unique_msg);
@@ -132,9 +132,9 @@ TEST(TestIntraProcessBuffer, unique_buffer_add) {
   original_message_pointer = reinterpret_cast<std::uintptr_t>(original_unique_msg.get());
   auto original_value = *original_unique_msg;
 
-  intra_process_buffer->add_unique(std::move(original_unique_msg));
+  intra_process_buffer.add_unique(std::move(original_unique_msg));
 
-  popped_unique_msg = intra_process_buffer->consume_unique();
+  popped_unique_msg = intra_process_buffer.consume_unique();
   popped_message_pointer = reinterpret_cast<std::uintptr_t>(popped_unique_msg.get());
 
   EXPECT_EQ(original_value, *popped_unique_msg);
@@ -155,20 +155,20 @@ TEST(TestIntraProcessBuffer, shared_buffer_consume) {
     rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT, SharedMessageT>;
 
   auto buffer_impl =
-    std::make_shared<rclcpp::intra_process_buffer::RingBufferImplementation<SharedMessageT>>(2);
+    std::make_unique<rclcpp::intra_process_buffer::RingBufferImplementation<SharedMessageT>>(2);
 
   auto intra_process_buffer =
-    std::make_shared<SharedIntraProcessBufferT>(buffer_impl);
+    SharedIntraProcessBufferT(std::move(buffer_impl));
 
   auto original_shared_msg = std::make_shared<char>('a');
   auto original_message_pointer = reinterpret_cast<std::uintptr_t>(original_shared_msg.get());
 
-  intra_process_buffer->add_shared(original_shared_msg);
+  intra_process_buffer.add_shared(original_shared_msg);
 
   EXPECT_EQ(2u, original_shared_msg.use_count());
 
   SharedMessageT popped_shared_msg;
-  popped_shared_msg = intra_process_buffer->consume_shared();
+  popped_shared_msg = intra_process_buffer.consume_shared();
   auto popped_message_pointer = reinterpret_cast<std::uintptr_t>(popped_shared_msg.get());
 
   EXPECT_EQ(original_shared_msg.use_count(), popped_shared_msg.use_count());
@@ -178,10 +178,10 @@ TEST(TestIntraProcessBuffer, shared_buffer_consume) {
   original_shared_msg = std::make_shared<char>('b');
   original_message_pointer = reinterpret_cast<std::uintptr_t>(original_shared_msg.get());
 
-  intra_process_buffer->add_shared(original_shared_msg);
+  intra_process_buffer.add_shared(original_shared_msg);
 
   UniqueMessageT popped_unique_msg;
-  popped_unique_msg = intra_process_buffer->consume_unique();
+  popped_unique_msg = intra_process_buffer.consume_unique();
   popped_message_pointer = reinterpret_cast<std::uintptr_t>(popped_unique_msg.get());
 
   EXPECT_EQ(1u, original_shared_msg.use_count());
@@ -203,19 +203,19 @@ TEST(TestIntraProcessBuffer, unique_buffer_consume) {
     rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT, UniqueMessageT>;
 
   auto buffer_impl =
-    std::make_shared<rclcpp::intra_process_buffer::RingBufferImplementation<UniqueMessageT>>(2);
+    std::make_unique<rclcpp::intra_process_buffer::RingBufferImplementation<UniqueMessageT>>(2);
 
   auto intra_process_buffer =
-    std::make_shared<UniqueIntraProcessBufferT>(buffer_impl);
+    UniqueIntraProcessBufferT(std::move(buffer_impl));
 
   auto original_unique_msg = std::make_unique<char>('a');
   auto original_message_pointer = reinterpret_cast<std::uintptr_t>(original_unique_msg.get());
   auto original_value = *original_unique_msg;
 
-  intra_process_buffer->add_unique(std::move(original_unique_msg));
+  intra_process_buffer.add_unique(std::move(original_unique_msg));
 
   SharedMessageT popped_shared_msg;
-  popped_shared_msg = intra_process_buffer->consume_shared();
+  popped_shared_msg = intra_process_buffer.consume_shared();
   auto popped_message_pointer = reinterpret_cast<std::uintptr_t>(popped_shared_msg.get());
 
   EXPECT_EQ(original_value, *popped_shared_msg);
@@ -225,10 +225,10 @@ TEST(TestIntraProcessBuffer, unique_buffer_consume) {
   original_message_pointer = reinterpret_cast<std::uintptr_t>(original_unique_msg.get());
   original_value = *original_unique_msg;
 
-  intra_process_buffer->add_unique(std::move(original_unique_msg));
+  intra_process_buffer.add_unique(std::move(original_unique_msg));
 
   UniqueMessageT popped_unique_msg;
-  popped_unique_msg = intra_process_buffer->consume_unique();
+  popped_unique_msg = intra_process_buffer.consume_unique();
   popped_message_pointer = reinterpret_cast<std::uintptr_t>(popped_unique_msg.get());
 
   EXPECT_EQ(original_value, *popped_unique_msg);

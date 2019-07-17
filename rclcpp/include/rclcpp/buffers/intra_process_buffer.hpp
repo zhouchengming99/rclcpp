@@ -68,9 +68,9 @@ public:
     "BufferT is not a valid type");
 
   TypedIntraProcessBuffer(
-    std::shared_ptr<BufferImplementationBase<BufferT>> buffer_impl)
+    std::unique_ptr<BufferImplementationBase<BufferT>> buffer_impl)
   {
-    buffer_ = buffer_impl;
+    buffer_ = std::move(buffer_impl);
   }
 
   void add_shared(ConstMessageSharedPtr msg)
@@ -113,7 +113,7 @@ public:
   }
 
 private:
-  std::shared_ptr<BufferImplementationBase<BufferT>> buffer_;
+  std::unique_ptr<BufferImplementationBase<BufferT>> buffer_;
 
   // ConstMessageSharedPtr to ConstMessageSharedPtr
   template<typename DestinationT>
