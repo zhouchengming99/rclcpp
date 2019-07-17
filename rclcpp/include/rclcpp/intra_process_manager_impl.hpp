@@ -90,87 +90,6 @@ private:
 template<typename Allocator = std::allocator<void>>
 class IntraProcessManagerImpl : public IntraProcessManagerImplBase
 {
-private:
-  RCLCPP_DISABLE_COPY(IntraProcessManagerImpl)
-
-  struct SubscriptionInfo
-  {
-    SubscriptionInfo() = default;
-
-    SubscriptionIntraProcessBase::SharedPtr subscription;
-    rmw_qos_profile_t qos;
-    const char * topic_name;
-    bool use_take_shared_method;
-  };
-
-  struct PublisherInfo
-  {
-    PublisherInfo() = default;
-
-    PublisherBase::WeakPtr publisher;
-    rmw_qos_profile_t qos;
-    const char * topic_name;
-  };
-
-  struct SplittedSubscriptions
-  {
-    std::unordered_set<uint64_t> take_shared_subscriptions;
-    std::unordered_set<uint64_t> take_ownership_subscriptions;
-  };
-
-  template<typename T>
-  using RebindAlloc = typename std::allocator_traits<Allocator>::template rebind_alloc<T>;
-
-  using SubscriptionMap = std::unordered_map<
-    uint64_t, SubscriptionInfo,
-    std::hash<uint64_t>, std::equal_to<uint64_t>,
-    RebindAlloc<std::pair<const uint64_t, SubscriptionInfo>>>;
-
-  using PublisherMap = std::unordered_map<
-    uint64_t, PublisherInfo,
-    std::hash<uint64_t>, std::equal_to<uint64_t>,
-    RebindAlloc<std::pair<const uint64_t, PublisherInfo>>>;
-
-  using PublisherToSubscriptionIdsMap = std::unordered_map<
-    uint64_t, SplittedSubscriptions,
-    std::hash<uint64_t>, std::equal_to<uint64_t>,
-    RebindAlloc<std::pair<const uint64_t, SplittedSubscriptions>>>;
-
-  PublisherToSubscriptionIdsMap pub_to_subs_;
-  SubscriptionMap subscriptions_;
-  PublisherMap publishers_;
-
-  void insert_sub_id_for_pub(uint64_t sub_id, uint64_t pub_id, bool use_take_shared_method)
-  {
-    if (use_take_shared_method) {
-      pub_to_subs_[pub_id].take_shared_subscriptions.insert(sub_id);
-    } else {
-      pub_to_subs_[pub_id].take_ownership_subscriptions.insert(sub_id);
-    }
-  }
-
-  bool can_communicate(PublisherInfo pub_info, SubscriptionInfo sub_info)
-  {
-    // publisher and subscription must be on the same topic
-    if (strcmp(pub_info.topic_name, sub_info.topic_name) != 0) {
-      return false;
-    }
-
-    // a reliable subscription can't be connected with a best effort publisher
-    if (sub_info.qos.reliability == RMW_QOS_POLICY_RELIABILITY_RELIABLE &&
-      pub_info.qos.reliability == RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
-    {
-      return false;
-    }
-
-    // a publisher and a subscription with different durability can't communicate
-    if (sub_info.qos.durability != pub_info.qos.durability) {
-      return false;
-    }
-
-    return true;
-  }
-
 public:
   IntraProcessManagerImpl() = default;
   ~IntraProcessManagerImpl() = default;
@@ -311,6 +230,87 @@ public:
     } else {
       return subscription_it->second.subscription;
     }
+  }
+
+private:
+  RCLCPP_DISABLE_COPY(IntraProcessManagerImpl)
+
+  struct SubscriptionInfo
+  {
+    SubscriptionInfo() = default;
+
+    SubscriptionIntraProcessBase::SharedPtr subscription;
+    rmw_qos_profile_t qos;
+    const char * topic_name;
+    bool use_take_shared_method;
+  };
+
+  struct PublisherInfo
+  {
+    PublisherInfo() = default;
+
+    PublisherBase::WeakPtr publisher;
+    rmw_qos_profile_t qos;
+    const char * topic_name;
+  };
+
+  struct SplittedSubscriptions
+  {
+    std::unordered_set<uint64_t> take_shared_subscriptions;
+    std::unordered_set<uint64_t> take_ownership_subscriptions;
+  };
+
+  template<typename T>
+  using RebindAlloc = typename std::allocator_traits<Allocator>::template rebind_alloc<T>;
+
+  using SubscriptionMap = std::unordered_map<
+    uint64_t, SubscriptionInfo,
+    std::hash<uint64_t>, std::equal_to<uint64_t>,
+    RebindAlloc<std::pair<const uint64_t, SubscriptionInfo>>>;
+
+  using PublisherMap = std::unordered_map<
+    uint64_t, PublisherInfo,
+    std::hash<uint64_t>, std::equal_to<uint64_t>,
+    RebindAlloc<std::pair<const uint64_t, PublisherInfo>>>;
+
+  using PublisherToSubscriptionIdsMap = std::unordered_map<
+    uint64_t, SplittedSubscriptions,
+    std::hash<uint64_t>, std::equal_to<uint64_t>,
+    RebindAlloc<std::pair<const uint64_t, SplittedSubscriptions>>>;
+
+  PublisherToSubscriptionIdsMap pub_to_subs_;
+  SubscriptionMap subscriptions_;
+  PublisherMap publishers_;
+
+  void insert_sub_id_for_pub(uint64_t sub_id, uint64_t pub_id, bool use_take_shared_method)
+  {
+    if (use_take_shared_method) {
+      pub_to_subs_[pub_id].take_shared_subscriptions.insert(sub_id);
+    } else {
+      pub_to_subs_[pub_id].take_ownership_subscriptions.insert(sub_id);
+    }
+  }
+
+  bool can_communicate(PublisherInfo pub_info, SubscriptionInfo sub_info)
+  {
+    // publisher and subscription must be on the same topic
+    if (strcmp(pub_info.topic_name, sub_info.topic_name) != 0) {
+      return false;
+    }
+
+    // a reliable subscription can't be connected with a best effort publisher
+    if (sub_info.qos.reliability == RMW_QOS_POLICY_RELIABILITY_RELIABLE &&
+      pub_info.qos.reliability == RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
+    {
+      return false;
+    }
+
+    // a publisher and a subscription with different durability can't communicate
+    if (sub_info.qos.durability != pub_info.qos.durability) {
+      return false;
+    }
+
+    return true;
   }
 };
 
