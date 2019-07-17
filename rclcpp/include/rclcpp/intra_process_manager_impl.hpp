@@ -34,7 +34,7 @@
 
 #include "rclcpp/macros.hpp"
 #include "rclcpp/publisher_base.hpp"
-#include "rclcpp/subscription_intra_process.hpp"
+#include "rclcpp/subscription_intra_process_base.hpp"
 #include "rclcpp/visibility_control.hpp"
 
 namespace rclcpp

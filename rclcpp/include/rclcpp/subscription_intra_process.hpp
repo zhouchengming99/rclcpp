@@ -26,53 +26,12 @@
 #include "rclcpp/contexts/default_context.hpp"
 #include "rclcpp/buffers/intra_process_buffer.hpp"
 #include "rclcpp/subscription.hpp"
+#include "rclcpp/subscription_intra_process_base.hpp"
 #include "rclcpp/type_support_decl.hpp"
 #include "rclcpp/waitable.hpp"
 
 namespace rclcpp
 {
-
-// Forward declarations
-namespace node_interfaces
-{
-class NodeTopicsInterface;
-class NodeWaitablesInterface;
-}  // namespace node_interfaces
-
-
-class SubscriptionIntraProcessBase : public rclcpp::Waitable
-{
-public:
-  RCLCPP_SMART_PTR_DEFINITIONS(SubscriptionIntraProcessBase)
-
-  SubscriptionIntraProcessBase() {}
-
-  size_t
-  get_number_of_ready_guard_conditions() {return 1;}
-
-  virtual bool
-  add_to_wait_set(rcl_wait_set_t * wait_set) = 0;
-
-  virtual bool
-  is_ready(rcl_wait_set_t * wait_set) = 0;
-
-  virtual void
-  execute() = 0;
-
-  virtual bool
-  use_take_shared_method() const = 0;
-
-  virtual const char *
-  get_topic_name() const = 0;
-
-  virtual rmw_qos_profile_t
-  get_actual_qos() const = 0;
-
-private:
-  virtual void
-  trigger_guard_condition() = 0;
-};
-
 
 template<
   typename MessageT,
@@ -95,7 +54,9 @@ public:
     const std::string & topic_name,
     rmw_qos_profile_t qos_profile,
     BufferUniquePtr buffer)
-  : any_callback_(callback), buffer_(std::move(buffer)), topic_name_(topic_name), qos_profile_(qos_profile)
+  : SubscriptionIntraProcessBase(topic_name, qos_profile),
+    any_callback_(callback),
+    buffer_(std::move(buffer))
   {
     std::shared_ptr<rclcpp::Context> context_ptr =
       rclcpp::contexts::default_context::get_global_default_context();
@@ -110,15 +71,6 @@ public:
     if (RCL_RET_OK != ret) {
       throw std::runtime_error("SubscriptionIntraProcess init error initializing guard condition");
     }
-  }
-
-  bool
-  add_to_wait_set(rcl_wait_set_t * wait_set)
-  {
-    std::lock_guard<std::recursive_mutex> lock(reentrant_mutex_);
-
-    rcl_ret_t ret = rcl_wait_set_add_guard_condition(wait_set, &gc_, NULL);
-    return RCL_RET_OK == ret;
   }
 
   bool
@@ -159,18 +111,6 @@ public:
     return buffer_->use_take_shared_method();
   }
 
-  const char *
-  get_topic_name() const
-  {
-    return topic_name_.c_str();
-  }
-
-  rmw_qos_profile_t
-  get_actual_qos() const
-  {
-    return qos_profile_;
-  }
-
 private:
   void
   trigger_guard_condition()
@@ -179,14 +119,8 @@ private:
     (void)ret;
   }
 
-  std::recursive_mutex reentrant_mutex_;
-  rcl_guard_condition_t gc_;
-
   AnySubscriptionCallback<MessageT, Alloc> any_callback_;
   BufferUniquePtr buffer_;
-
-  std::string topic_name_;
-  rmw_qos_profile_t qos_profile_;
 };
 
 }  // namespace rclcpp

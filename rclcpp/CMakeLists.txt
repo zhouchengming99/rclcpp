@@ -70,6 +70,7 @@ set(${PROJECT_NAME}_SRCS
   src/rclcpp/service.cpp
   src/rclcpp/signal_handler.cpp
   src/rclcpp/subscription_base.cpp
+  src/rclcpp/subscription_intra_process_base.cpp
   src/rclcpp/time.cpp
   src/rclcpp/time_source.cpp
   src/rclcpp/timer.cpp
