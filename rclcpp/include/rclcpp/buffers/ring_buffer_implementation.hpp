@@ -41,10 +41,10 @@ public:
   explicit RingBufferImplementation(size_t size)
   : ring_buffer_(size)
   {
-    _buffer_size = size;
-    write_ = _buffer_size - 1;
+    buffer_size_ = size;
+    write_ = buffer_size_ - 1;
     read_ = 0;
-    _length = 0;
+    length_ = 0;
 
     if (size == 0) {
       throw std::invalid_argument("size must be a positive, non-zero value");
@@ -63,7 +63,7 @@ public:
     if (is_full()) {
       read_ = next(read_);
     } else {
-      _length++;
+      length_++;
     }
   }
 
@@ -76,24 +76,24 @@ public:
     auto request = std::move(ring_buffer_[read_]);
     read_ = next(read_);
 
-    _length--;
+    length_--;
 
     return request;
   }
 
   inline uint32_t next(uint32_t val)
   {
-    return (val + 1) % _buffer_size;
+    return (val + 1) % buffer_size_;
   }
 
-  bool has_data() const
+  inline bool has_data() const
   {
-    return _length != 0;
+    return length_ != 0;
   }
 
   inline bool is_full()
   {
-    return _length == _buffer_size;
+    return length_ == buffer_size_;
   }
 
   void clear() {}
@@ -103,8 +103,8 @@ private:
 
   int write_;
   int read_;
-  size_t _length;
-  size_t _buffer_size;
+  size_t length_;
+  size_t buffer_size_;
 
   std::mutex mutex_;
 };
