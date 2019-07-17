@@ -30,13 +30,6 @@
 namespace rclcpp
 {
 
-// Forward declarations
-namespace node_interfaces
-{
-class NodeWaitablesInterface;
-}  // namespace node_interfaces
-
-
 class SubscriptionIntraProcessBase : public rclcpp::Waitable
 {
 public:

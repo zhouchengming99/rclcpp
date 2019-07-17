@@ -31,13 +31,14 @@
 #include "rclcpp/allocator/allocator_deleter.hpp"
 #include "rclcpp/intra_process_manager_impl.hpp"
 #include "rclcpp/macros.hpp"
+#include "subscription_intra_process.hpp"
+#include "subscription_intra_process_base.hpp"
 #include "rclcpp/visibility_control.hpp"
 
 namespace rclcpp
 {
 
 // Forward declarations
-class SubscriptionIntraProcessBase;
 class PublisherBase;
 
 namespace intra_process_manager

@@ -285,6 +285,7 @@ public:
 #define RCLCPP__PUBLISHER_BASE_HPP_
 #define RCLCPP__SUBSCRIPTION_BASE_HPP_
 #define RCLCPP__SUBSCRIPTION_INTRA_PROCESS_HPP_
+#define RCLCPP__SUBSCRIPTION_INTRA_PROCESS_BASE_HPP_
 // Force ipm to use our mock publisher class.
 #define Publisher mock::Publisher
 #define PublisherBase mock::PublisherBase
