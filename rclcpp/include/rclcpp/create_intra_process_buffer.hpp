@@ -31,7 +31,7 @@ namespace rclcpp
 template<
   typename MessageT,
   typename Alloc>
-typename intra_process_buffer::IntraProcessBuffer<MessageT>::UniquePtr
+typename intra_process_buffer::IntraProcessBuffer<MessageT, Alloc>::UniquePtr
 create_intra_process_buffer(
   IntraProcessBufferType buffer_type,
   const rcl_subscription_options_t & options
@@ -40,17 +40,17 @@ create_intra_process_buffer(
   using MessageAllocTraits = allocator::AllocRebind<MessageT, Alloc>;
   using MessageAlloc = typename MessageAllocTraits::allocator_type;
   using MessageDeleter = allocator::Deleter<MessageAlloc, MessageT>;
-  using ConstMessageSharedPtr = std::shared_ptr<const MessageT>;
+  using MessageSharedPtr = std::shared_ptr<const MessageT>;
   using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
 
   size_t buffer_size = options.qos.depth;
 
-  typename intra_process_buffer::IntraProcessBuffer<MessageT>::UniquePtr buffer;
+  typename intra_process_buffer::IntraProcessBuffer<MessageT, Alloc>::UniquePtr buffer;
 
   switch (buffer_type) {
     case IntraProcessBufferType::SharedPtr:
       {
-        using BufferT = ConstMessageSharedPtr;
+        using BufferT = MessageSharedPtr;
 
         auto buffer_implementation =
           std::make_unique<rclcpp::intra_process_buffer::RingBufferImplementation<BufferT>>(
@@ -58,7 +58,7 @@ create_intra_process_buffer(
 
         // construct the intra_process_buffer
         buffer =
-          std::make_unique<rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT,
+          std::make_unique<rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT, Alloc,
             BufferT>>(std::move(buffer_implementation));
 
         break;
@@ -73,7 +73,7 @@ create_intra_process_buffer(
 
         // construct the intra_process_buffer
         buffer =
-          std::make_unique<rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT,
+          std::make_unique<rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT, Alloc,
             BufferT>>(std::move(buffer_implementation));
 
         break;

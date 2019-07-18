@@ -19,6 +19,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "rclcpp/allocator/allocator_common.hpp"
+#include "rclcpp/allocator/allocator_deleter.hpp"
 #include "rclcpp/buffers/buffer_implementation_base.hpp"
 
 namespace rclcpp
@@ -37,33 +39,42 @@ public:
   virtual bool use_take_shared_method() const = 0;
 };
 
-template<typename MessageT>
+template<
+  typename MessageT,
+  typename Alloc = std::allocator<void>>
 class IntraProcessBuffer : public IntraProcessBufferBase
 {
 public:
   RCLCPP_SMART_PTR_DEFINITIONS(IntraProcessBuffer)
 
-  using ConstMessageSharedPtr = std::shared_ptr<const MessageT>;
-  using MessageUniquePtr = std::unique_ptr<MessageT>;
+  using MessageAllocTraits = allocator::AllocRebind<MessageT, Alloc>;
+  using MessageAlloc = typename MessageAllocTraits::allocator_type;
+  using MessageDeleter = allocator::Deleter<MessageAlloc, MessageT>;
+  using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
+  using MessageSharedPtr = std::shared_ptr<const MessageT>;
 
-  virtual void add_shared(ConstMessageSharedPtr msg) = 0;
+  virtual void add_shared(MessageSharedPtr msg) = 0;
   virtual void add_unique(MessageUniquePtr msg) = 0;
 
-  virtual ConstMessageSharedPtr consume_shared() = 0;
+  virtual MessageSharedPtr consume_shared() = 0;
   virtual MessageUniquePtr consume_unique() = 0;
 };
 
 template<
   typename MessageT,
+  typename Alloc = std::allocator<void>,
   typename BufferT = std::unique_ptr<MessageT>>
-class TypedIntraProcessBuffer : public IntraProcessBuffer<MessageT>
+class TypedIntraProcessBuffer : public IntraProcessBuffer<MessageT, Alloc>
 {
 public:
   RCLCPP_SMART_PTR_DEFINITIONS(TypedIntraProcessBuffer)
 
-  using ConstMessageSharedPtr = std::shared_ptr<const MessageT>;
-  using MessageUniquePtr = std::unique_ptr<MessageT>;
-  static_assert(std::is_same<BufferT, ConstMessageSharedPtr>::value ||
+  using MessageAllocTraits = allocator::AllocRebind<MessageT, Alloc>;
+  using MessageAlloc = typename MessageAllocTraits::allocator_type;
+  using MessageDeleter = allocator::Deleter<MessageAlloc, MessageT>;
+  using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
+  using MessageSharedPtr = std::shared_ptr<const MessageT>;
+  static_assert(std::is_same<BufferT, MessageSharedPtr>::value ||
     std::is_same<BufferT, MessageUniquePtr>::value,
     "BufferT is not a valid type");
 
@@ -73,7 +84,7 @@ public:
     buffer_ = std::move(buffer_impl);
   }
 
-  void add_shared(ConstMessageSharedPtr msg)
+  void add_shared(MessageSharedPtr msg)
   {
     add_shared_impl<BufferT>(std::move(msg));
   }
@@ -83,7 +94,7 @@ public:
     add_unique_impl<BufferT>(std::move(msg));
   }
 
-  ConstMessageSharedPtr consume_shared()
+  MessageSharedPtr consume_shared()
   {
     return consume_shared_impl<BufferT>();
   }
@@ -105,37 +116,37 @@ public:
 
   bool use_take_shared_method() const
   {
-    return std::is_same<BufferT, ConstMessageSharedPtr>::value;
+    return std::is_same<BufferT, MessageSharedPtr>::value;
   }
 
 private:
   std::unique_ptr<BufferImplementationBase<BufferT>> buffer_;
 
-  // ConstMessageSharedPtr to ConstMessageSharedPtr
+  // MessageSharedPtr to MessageSharedPtr
   template<typename DestinationT>
   typename std::enable_if<
-    std::is_same<DestinationT, ConstMessageSharedPtr>::value
+    std::is_same<DestinationT, MessageSharedPtr>::value
   >::type
-  add_shared_impl(ConstMessageSharedPtr shared_msg)
+  add_shared_impl(MessageSharedPtr shared_msg)
   {
     buffer_->enqueue(std::move(shared_msg));
   }
 
-  // ConstMessageSharedPtr to MessageUniquePtr
+  // MessageSharedPtr to MessageUniquePtr
   template<typename DestinationT>
   typename std::enable_if<
     std::is_same<DestinationT, MessageUniquePtr>::value
   >::type
-  add_shared_impl(ConstMessageSharedPtr shared_msg)
+  add_shared_impl(MessageSharedPtr shared_msg)
   {
     auto unique_msg = std::make_unique<MessageT>(*shared_msg);
     buffer_->enqueue(std::move(unique_msg));
   }
 
-  // MessageUniquePtr to ConstMessageSharedPtr
+  // MessageUniquePtr to MessageSharedPtr
   template<typename DestinationT>
   typename std::enable_if<
-    std::is_same<DestinationT, ConstMessageSharedPtr>::value
+    std::is_same<DestinationT, MessageSharedPtr>::value
   >::type
   add_unique_impl(MessageUniquePtr unique_msg)
   {
@@ -152,22 +163,22 @@ private:
     buffer_->enqueue(std::move(unique_msg));
   }
 
-  // ConstMessageSharedPtr to ConstMessageSharedPtr
+  // MessageSharedPtr to MessageSharedPtr
   template<typename OriginT>
   typename std::enable_if<
-    (std::is_same<OriginT, ConstMessageSharedPtr>::value),
-    ConstMessageSharedPtr
+    (std::is_same<OriginT, MessageSharedPtr>::value),
+    MessageSharedPtr
   >::type
   consume_shared_impl()
   {
     return buffer_->dequeue();
   }
 
-  // MessageUniquePtr to ConstMessageSharedPtr
+  // MessageUniquePtr to MessageSharedPtr
   template<typename OriginT>
   typename std::enable_if<
     (std::is_same<OriginT, MessageUniquePtr>::value),
-    ConstMessageSharedPtr
+    MessageSharedPtr
   >::type
   consume_shared_impl()
   {
@@ -175,15 +186,15 @@ private:
     return buffer_->dequeue();
   }
 
-  // ConstMessageSharedPtr to MessageUniquePtr
+  // MessageSharedPtr to MessageUniquePtr
   template<typename OriginT>
   typename std::enable_if<
-    (std::is_same<OriginT, ConstMessageSharedPtr>::value),
+    (std::is_same<OriginT, MessageSharedPtr>::value),
     MessageUniquePtr
   >::type
   consume_unique_impl()
   {
-    ConstMessageSharedPtr buffer_msg = buffer_->dequeue();
+    MessageSharedPtr buffer_msg = buffer_->dequeue();
     return std::make_unique<MessageT>(*buffer_msg);
   }
 

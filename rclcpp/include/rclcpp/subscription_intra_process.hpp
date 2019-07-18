@@ -47,7 +47,8 @@ public:
   using ConstMessageSharedPtr = std::shared_ptr<const MessageT>;
   using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
 
-  using BufferUniquePtr = typename intra_process_buffer::IntraProcessBuffer<MessageT>::UniquePtr;
+  using BufferUniquePtr =
+    typename intra_process_buffer::IntraProcessBuffer<MessageT, Alloc>::UniquePtr;
 
   SubscriptionIntraProcess(
     AnySubscriptionCallback<MessageT, Alloc> callback,
