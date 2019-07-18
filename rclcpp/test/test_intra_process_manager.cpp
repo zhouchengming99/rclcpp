@@ -14,8 +14,6 @@
 
 #include <gmock/gmock.h>
 
-#include <rcl/subscription.h>
-#include <rcl/publisher.h>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -24,6 +22,8 @@
 
 #define RCLCPP_BUILDING_LIBRARY 1
 #include "rclcpp/allocator/allocator_common.hpp"
+#include "rclcpp/logger.hpp"
+#include "rclcpp/logging.hpp"
 #include "rclcpp/macros.hpp"
 #include "rmw/types.h"
 #include "rmw/qos_profiles.h"
@@ -37,6 +37,13 @@ namespace rclcpp
 namespace intra_process_manager
 {
 class IntraProcessManager;
+}
+
+// This definition is needed because intra_process_manager_impl.hpp uses RCLCPP_* logging macros
+const char *
+get_c_string(const char * string_in)
+{
+  return string_in;
 }
 
 namespace mock
@@ -281,9 +288,7 @@ public:
 }  // namespace rclcpp
 
 // Prevent rclcpp/publisher_base.hpp and rclcpp/subscription.hpp from being imported.
-#define RCLCPP__INTRA_PROCESS_BUFFER_HPP_
 #define RCLCPP__PUBLISHER_BASE_HPP_
-#define RCLCPP__SUBSCRIPTION_BASE_HPP_
 #define RCLCPP__SUBSCRIPTION_INTRA_PROCESS_HPP_
 #define RCLCPP__SUBSCRIPTION_INTRA_PROCESS_BASE_HPP_
 // Force ipm to use our mock publisher class.
@@ -294,6 +299,7 @@ public:
 #define SubscriptionIntraProcess mock::SubscriptionIntraProcess
 #include "../src/rclcpp/intra_process_manager.cpp"
 #include "../src/rclcpp/intra_process_manager_impl.cpp"
+#include "../src/rclcpp/logger.cpp"
 #undef Publisher
 #undef PublisherBase
 #undef IntraProcessBuffer

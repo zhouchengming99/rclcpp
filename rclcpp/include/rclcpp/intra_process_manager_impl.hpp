@@ -32,6 +32,8 @@
 
 #include "rmw/validate_full_topic_name.h"
 
+#include "rclcpp/logger.hpp"
+#include "rclcpp/logging.hpp"
 #include "rclcpp/macros.hpp"
 #include "rclcpp/publisher_base.hpp"
 #include "rclcpp/subscription_intra_process_base.hpp"
@@ -100,6 +102,9 @@ public:
     SubscriptionIntraProcessBase::SharedPtr subscription)
   {
     if (subscriptions_.find(id) != subscriptions_.end()) {
+      RCLCPP_WARN(
+        rclcpp::get_logger("rclcpp"),
+        "Subscription intra-process on topic  has already been added to ipm");
       return;
     }
 
@@ -176,6 +181,9 @@ public:
     auto publisher_it = pub_to_subs_.find(intra_process_publisher_id);
     if (publisher_it == pub_to_subs_.end()) {
       // Publisher is either invalid or no longer exists.
+      RCLCPP_WARN(
+        rclcpp::get_logger("rclcpp"),
+        "Calling get_subscription_count for invalid or no longer existing publisher id");
       return 0;
     }
 
