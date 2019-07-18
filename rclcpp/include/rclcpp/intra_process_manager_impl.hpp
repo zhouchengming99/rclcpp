@@ -209,8 +209,8 @@ public:
 
     for (auto & pair : pub_to_subs_) {
       auto publisher_id = pair.first;
-      auto ownership_subs = pair.second.take_ownership_subscriptions;
-      auto shared_subs = pair.second.take_shared_subscriptions;
+      const auto & ownership_subs = pair.second.take_ownership_subscriptions;
+      const auto & shared_subs = pair.second.take_shared_subscriptions;
       if (ownership_subs.find(intra_process_subscription_id) != ownership_subs.end() ||
         shared_subs.find(intra_process_subscription_id) != shared_subs.end())
       {
