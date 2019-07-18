@@ -173,7 +173,7 @@ protected:
   }
 
   bool
-  matches_any_intra_process_publishers(const rmw_gid_t * sender_gid);
+  matches_any_intra_process_publishers(const rmw_gid_t * sender_gid) const;
 
   std::shared_ptr<rcl_node_t> node_handle_;
   std::shared_ptr<rcl_subscription_t> subscription_handle_;

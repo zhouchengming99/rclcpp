@@ -173,7 +173,7 @@ SubscriptionBase::get_intra_process_id() const
 }
 
 bool
-SubscriptionBase::matches_any_intra_process_publishers(const rmw_gid_t * sender_gid)
+SubscriptionBase::matches_any_intra_process_publishers(const rmw_gid_t * sender_gid) const
 {
   if (!use_intra_process_) {
     return false;
