@@ -306,6 +306,7 @@ private:
       return false;
     }
 
+    // TODO: the following checks for qos compatibility should be provided by the RMW
     // a reliable subscription can't be connected with a best effort publisher
     if (sub_info.qos.reliability == RMW_QOS_POLICY_RELIABILITY_RELIABLE &&
       pub_info.qos.reliability == RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
