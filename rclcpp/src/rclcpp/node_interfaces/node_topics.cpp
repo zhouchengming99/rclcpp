@@ -128,6 +128,7 @@ NodeTopics::create_subscription(
     // Note: topic_name does not include the namespace, use subscription->get_topic_name().
     auto subscription_intra_process = subscription_factory.create_typed_subscription_intra_process(
       buffer_type,
+      context,
       subscription->get_topic_name(),
       subscription_options);
 

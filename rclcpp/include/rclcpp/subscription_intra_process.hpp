@@ -52,6 +52,7 @@ public:
 
   SubscriptionIntraProcess(
     AnySubscriptionCallback<MessageT, Alloc> callback,
+    rclcpp::Context::SharedPtr context,
     const std::string & topic_name,
     rmw_qos_profile_t qos_profile,
     BufferUniquePtr buffer)
@@ -59,15 +60,12 @@ public:
     any_callback_(callback),
     buffer_(std::move(buffer))
   {
-    std::shared_ptr<rclcpp::Context> context_ptr =
-      rclcpp::contexts::default_context::get_global_default_context();
-
     rcl_guard_condition_options_t guard_condition_options =
       rcl_guard_condition_get_default_options();
 
     gc_ = rcl_get_zero_initialized_guard_condition();
     rcl_ret_t ret = rcl_guard_condition_init(
-      &gc_, context_ptr->get_rcl_context().get(), guard_condition_options);
+      &gc_, context->get_rcl_context().get(), guard_condition_options);
 
     if (RCL_RET_OK != ret) {
       throw std::runtime_error("SubscriptionIntraProcess init error initializing guard condition");

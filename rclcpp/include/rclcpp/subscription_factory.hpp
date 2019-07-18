@@ -61,6 +61,7 @@ struct SubscriptionFactory
   using SubscriptionIntraProcessFactoryFunction =
     std::function<rclcpp::SubscriptionIntraProcessBase::SharedPtr(
         rclcpp::IntraProcessBufferType buffer_type,
+        rclcpp::Context::SharedPtr context,
         const std::string & topic_name,
         const rcl_subscription_options_t & subscription_options)>;
 
@@ -122,6 +123,7 @@ create_subscription_factory(
   factory.create_typed_subscription_intra_process =
     [any_subscription_callback](
     rclcpp::IntraProcessBufferType buffer_type,
+    rclcpp::Context::SharedPtr context,
     const std::string & topic_name,
     const rcl_subscription_options_t & subscription_options
     ) -> rclcpp::SubscriptionIntraProcessBase::SharedPtr
@@ -139,6 +141,7 @@ create_subscription_factory(
       auto sub_intra_process =
         std::make_shared<SubscriptionIntraProcess<MessageT, Alloc>>(
           any_subscription_callback,
+          context,
           topic_name,
           subscription_options.qos,
           std::move(buffer));
