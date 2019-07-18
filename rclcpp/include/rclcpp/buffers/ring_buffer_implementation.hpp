@@ -101,8 +101,8 @@ public:
 private:
   std::vector<BufferT> ring_buffer_;
 
-  int write_index_;
-  int read_index_;
+  size_t write_index_;
+  size_t read_index_;
   size_t size_;
   size_t capacity_;
 
