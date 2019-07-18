@@ -91,7 +91,7 @@ public:
 
   void add_unique(MessageUniquePtr msg)
   {
-    add_unique_impl<BufferT>(std::move(msg));
+    buffer_->enqueue(std::move(msg));
   }
 
   MessageSharedPtr consume_shared()
@@ -140,26 +140,6 @@ private:
   add_shared_impl(MessageSharedPtr shared_msg)
   {
     auto unique_msg = std::make_unique<MessageT>(*shared_msg);
-    buffer_->enqueue(std::move(unique_msg));
-  }
-
-  // MessageUniquePtr to MessageSharedPtr
-  template<typename DestinationT>
-  typename std::enable_if<
-    std::is_same<DestinationT, MessageSharedPtr>::value
-  >::type
-  add_unique_impl(MessageUniquePtr unique_msg)
-  {
-    buffer_->enqueue(std::move(unique_msg));
-  }
-
-  // MessageUniquePtr to MessageUniquePtr
-  template<typename DestinationT>
-  typename std::enable_if<
-    std::is_same<DestinationT, MessageUniquePtr>::value
-  >::type
-  add_unique_impl(MessageUniquePtr unique_msg)
-  {
     buffer_->enqueue(std::move(unique_msg));
   }
 

@@ -24,6 +24,8 @@
 #include <utility>
 #include <vector>
 
+#include "rclcpp/logger.hpp"
+#include "rclcpp/logging.hpp"
 #include "rclcpp/macros.hpp"
 #include "rclcpp/visibility_control.hpp"
 
@@ -69,7 +71,10 @@ public:
 
   BufferT dequeue()
   {
-    assert(has_data());
+    if (!has_data()) {
+      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Calling dequeue on empty intra-process buffer");
+      throw std::runtime_error("Calling dequeue on empty intra-process buffer");
+    }
 
     std::lock_guard<std::mutex> lock(mutex_);
 
