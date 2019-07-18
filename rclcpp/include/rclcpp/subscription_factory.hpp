@@ -24,7 +24,6 @@
 
 #include "rosidl_typesupport_cpp/message_type_support.hpp"
 
-#include "rclcpp/create_intra_process_buffer.hpp"
 #include "rclcpp/subscription.hpp"
 #include "rclcpp/subscription_traits.hpp"
 #include "rclcpp/intra_process_buffer_type.hpp"
@@ -133,18 +132,14 @@ create_subscription_factory(
         buffer_type = any_subscription_callback.use_take_shared_method() ?
           IntraProcessBufferType::SharedPtr : IntraProcessBufferType::UniquePtr;
       }
-      // Create the intra-process buffer.
-      auto buffer = rclcpp::create_intra_process_buffer<MessageT, Alloc>(
-        buffer_type,
-        subscription_options);
 
       auto sub_intra_process =
         std::make_shared<SubscriptionIntraProcess<MessageT, Alloc>>(
-          any_subscription_callback,
-          context,
-          topic_name,
-          subscription_options.qos,
-          std::move(buffer));
+        any_subscription_callback,
+        context,
+        topic_name,
+        subscription_options.qos,
+        buffer_type);
 
       return sub_intra_process;
     };

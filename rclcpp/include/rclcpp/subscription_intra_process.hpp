@@ -19,12 +19,13 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 #include <utility>
 
 #include "rcl/error_handling.h"
 
-#include "rclcpp/contexts/default_context.hpp"
 #include "rclcpp/buffers/intra_process_buffer.hpp"
+#include "rclcpp/create_intra_process_buffer.hpp"
 #include "rclcpp/subscription.hpp"
 #include "rclcpp/subscription_intra_process_base.hpp"
 #include "rclcpp/type_support_decl.hpp"
@@ -55,11 +56,16 @@ public:
     rclcpp::Context::SharedPtr context,
     const std::string & topic_name,
     rmw_qos_profile_t qos_profile,
-    BufferUniquePtr buffer)
+    rclcpp::IntraProcessBufferType buffer_type)
   : SubscriptionIntraProcessBase(topic_name, qos_profile),
-    any_callback_(callback),
-    buffer_(std::move(buffer))
+    any_callback_(callback)
   {
+    // Create the intra-process buffer.
+    buffer_ = rclcpp::create_intra_process_buffer<MessageT, Alloc>(
+      buffer_type,
+      qos_profile);
+
+    // Create the guard condition.
     rcl_guard_condition_options_t guard_condition_options =
       rcl_guard_condition_get_default_options();
 

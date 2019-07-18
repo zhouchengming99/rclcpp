@@ -34,7 +34,7 @@ template<
 typename intra_process_buffer::IntraProcessBuffer<MessageT, Alloc>::UniquePtr
 create_intra_process_buffer(
   IntraProcessBufferType buffer_type,
-  const rcl_subscription_options_t & options
+  rmw_qos_profile_t qos
 )
 {
   using MessageAllocTraits = allocator::AllocRebind<MessageT, Alloc>;
@@ -43,7 +43,7 @@ create_intra_process_buffer(
   using MessageSharedPtr = std::shared_ptr<const MessageT>;
   using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
 
-  size_t buffer_size = options.qos.depth;
+  size_t buffer_size = qos.depth;
 
   typename intra_process_buffer::IntraProcessBuffer<MessageT, Alloc>::UniquePtr buffer;
 
