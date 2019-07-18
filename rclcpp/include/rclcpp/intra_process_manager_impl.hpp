@@ -145,6 +145,9 @@ public:
     publishers_[id].topic_name = publisher->get_topic_name();
     publishers_[id].qos = publisher->get_actual_qos();
 
+    // Initialize the subscriptions storage for this publisher.
+    pub_to_subs_[id] = SplittedSubscriptions();
+
     // create an entry for the publisher id and populate with already existing subscriptions
     for (auto & pair : subscriptions_) {
       if (can_communicate(publishers_[id], pair.second)) {
@@ -306,7 +309,7 @@ private:
       return false;
     }
 
-    // TODO: the following checks for qos compatibility should be provided by the RMW
+    // TODO(alsora): the following checks for qos compatibility should be provided by the RMW
     // a reliable subscription can't be connected with a best effort publisher
     if (sub_info.qos.reliability == RMW_QOS_POLICY_RELIABILITY_RELIABLE &&
       pub_info.qos.reliability == RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)

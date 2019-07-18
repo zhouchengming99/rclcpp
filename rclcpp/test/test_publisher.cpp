@@ -200,10 +200,6 @@ static std::vector<TestParameters> invalid_qos_profiles()
       "transient_local_qos"));
   parameters.push_back(
     TestParameters(
-      rclcpp::QoS(rclcpp::KeepLast(0)),
-      "keep_last_qos_with_zero_history_depth"));
-  parameters.push_back(
-    TestParameters(
       rclcpp::QoS(rclcpp::KeepAll()),
       "keep_all_qos"));
 

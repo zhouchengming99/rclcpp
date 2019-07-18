@@ -120,6 +120,8 @@ public:
   Publisher()
   {
     qos_profile = rmw_qos_profile_default;
+    auto allocator = std::make_shared<Alloc>();
+    message_allocator_ = std::make_shared<MessageAlloc>(*allocator.get());
   }
 
   void publish(MessageUniquePtr msg)
@@ -133,9 +135,10 @@ public:
       throw std::runtime_error("cannot publish msg which is a null pointer");
     }
 
-    ipm->template do_intra_process_publish<T, MessageDeleter>(
+    ipm->template do_intra_process_publish<T, Alloc>(
       intra_process_publisher_id_,
-      std::move(msg));
+      std::move(msg),
+      message_allocator_);
   }
 
   // This function is actually deprecated in the real rclcpp::publisher, but
@@ -151,10 +154,13 @@ public:
       throw std::runtime_error("cannot publish msg which is a null pointer");
     }
 
-    ipm->template do_intra_process_publish<T>(
+    ipm->template do_intra_process_publish<T, Alloc>(
       intra_process_publisher_id_,
-      msg);
+      msg,
+      message_allocator_);
   }
+
+  std::shared_ptr<MessageAlloc> message_allocator_;
 };
 
 }  // namespace mock
