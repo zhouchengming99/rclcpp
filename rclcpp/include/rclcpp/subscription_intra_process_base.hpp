@@ -20,6 +20,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <utility>
 
 #include "rcl/error_handling.h"
@@ -37,7 +38,7 @@ public:
 
   SubscriptionIntraProcessBase(const std::string & topic_name, rmw_qos_profile_t qos_profile)
   : topic_name_(topic_name), qos_profile_(qos_profile)
-  { }
+  {}
 
   size_t
   get_number_of_ready_guard_conditions() {return 1;}
