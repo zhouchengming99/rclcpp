@@ -304,7 +304,6 @@ public:
 #define SubscriptionIntraProcessBase mock::SubscriptionIntraProcessBase
 #define SubscriptionIntraProcess mock::SubscriptionIntraProcess
 #include "../src/rclcpp/intra_process_manager.cpp"
-#include "../src/rclcpp/intra_process_manager_impl.cpp"
 #include "../src/rclcpp/logger.cpp"
 #undef Publisher
 #undef PublisherBase

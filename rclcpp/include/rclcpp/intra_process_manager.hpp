@@ -23,23 +23,23 @@
 #include <exception>
 #include <map>
 #include <memory>
-#include <mutex>
+#include <shared_mutex>
+#include <string>
 #include <unordered_map>
 #include <utility>
-#include <unordered_set>
+#include <vector>
 
 #include "rclcpp/allocator/allocator_deleter.hpp"
-#include "rclcpp/intra_process_manager_impl.hpp"
+#include "rclcpp/logger.hpp"
+#include "rclcpp/logging.hpp"
 #include "rclcpp/macros.hpp"
-#include "subscription_intra_process.hpp"
-#include "subscription_intra_process_base.hpp"
+#include "rclcpp/publisher_base.hpp"
+#include "rclcpp/subscription_intra_process.hpp"
+#include "rclcpp/subscription_intra_process_base.hpp"
 #include "rclcpp/visibility_control.hpp"
 
 namespace rclcpp
 {
-
-// Forward declarations
-class PublisherBase;
 
 namespace intra_process_manager
 {
@@ -92,8 +92,7 @@ public:
   RCLCPP_SMART_PTR_DEFINITIONS(IntraProcessManager)
 
   RCLCPP_PUBLIC
-  explicit IntraProcessManager(
-    IntraProcessManagerImplBase::SharedPtr state = create_default_impl());
+  IntraProcessManager();
 
   RCLCPP_PUBLIC
   virtual ~IntraProcessManager();
@@ -185,17 +184,21 @@ public:
     using MessageDeleter = allocator::Deleter<MessageAlloc, MessageT>;
     using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
 
-    std::unordered_set<uint64_t> take_shared_subscription_ids;
-    std::unordered_set<uint64_t> take_owned_subscription_ids;
+    std::shared_lock<std::shared_timed_mutex> lock(mutex_);
 
-    impl_->get_subscription_ids_for_pub(
-      take_shared_subscription_ids,
-      take_owned_subscription_ids,
-      intra_process_publisher_id);
+    auto publisher_it = pub_to_subs_.find(intra_process_publisher_id);
+    if (publisher_it == pub_to_subs_.end()) {
+      // Publisher is either invalid or no longer exists.
+      RCLCPP_WARN(
+        rclcpp::get_logger("rclcpp"),
+        "Calling do_intra_process_publish for invalid or no longer existing publisher id");
+      return;
+    }
+    const auto & sub_ids = publisher_it->second;
 
-    this->template add_shared_msg_to_buffers<MessageT>(message, take_shared_subscription_ids);
+    this->template add_shared_msg_to_buffers<MessageT>(message, sub_ids.take_shared_subscriptions);
 
-    if (take_owned_subscription_ids.size() > 0) {
+    if (sub_ids.take_ownership_subscriptions.size() > 0) {
       MessageUniquePtr unique_msg;
       MessageDeleter * deleter = std::get_deleter<MessageDeleter, const MessageT>(message);
       auto ptr = MessageAllocTraits::allocate(*allocator.get(), 1);
@@ -208,7 +211,7 @@ public:
 
       this->template add_owned_msg_to_buffers<MessageT>(
         std::move(unique_msg),
-        take_owned_subscription_ids,
+        sub_ids.take_ownership_subscriptions,
         allocator);
     }
   }
@@ -246,34 +249,46 @@ public:
     std::unique_ptr<MessageT, Deleter> message,
     std::shared_ptr<typename allocator::AllocRebind<MessageT, Alloc>::allocator_type> allocator)
   {
-    std::unordered_set<uint64_t> take_shared_subscription_ids;
-    std::unordered_set<uint64_t> take_owned_subscription_ids;
+    std::shared_lock<std::shared_timed_mutex> lock(mutex_);
 
-    impl_->get_subscription_ids_for_pub(
-      take_shared_subscription_ids,
-      take_owned_subscription_ids,
-      intra_process_publisher_id);
+    auto publisher_it = pub_to_subs_.find(intra_process_publisher_id);
+    if (publisher_it == pub_to_subs_.end()) {
+      // Publisher is either invalid or no longer exists.
+      RCLCPP_WARN(
+        rclcpp::get_logger("rclcpp"),
+        "Calling do_intra_process_publish for invalid or no longer existing publisher id");
+      return;
+    }
+    const auto & sub_ids = publisher_it->second;
 
-    if (take_owned_subscription_ids.size() == 0) {
+    if (sub_ids.take_ownership_subscriptions.size() == 0) {
       std::shared_ptr<MessageT> msg = std::move(message);
 
-      this->template add_shared_msg_to_buffers<MessageT>(msg, take_shared_subscription_ids);
-    } else if (take_owned_subscription_ids.size() > 0 && take_shared_subscription_ids.size() <= 1) {
+      this->template add_shared_msg_to_buffers<MessageT>(msg, sub_ids.take_shared_subscriptions);
+    } else if (sub_ids.take_ownership_subscriptions.size() > 0 &&
+      sub_ids.take_shared_subscriptions.size() <= 1)
+    {
       // merge the two vector of ids into a unique one
-      take_owned_subscription_ids.insert(
-        take_shared_subscription_ids.begin(), take_shared_subscription_ids.end());
+      std::vector<uint64_t> concatenated_vector(sub_ids.take_shared_subscriptions);
+      concatenated_vector.insert(
+        concatenated_vector.end(),
+        sub_ids.take_ownership_subscriptions.begin(),
+        sub_ids.take_ownership_subscriptions.end());
 
       this->template add_owned_msg_to_buffers<MessageT, Alloc, Deleter>(
         std::move(message),
-        take_owned_subscription_ids,
+        concatenated_vector,
         allocator);
-    } else if (take_owned_subscription_ids.size() > 0 && take_shared_subscription_ids.size() > 1) {
+    } else if (sub_ids.take_ownership_subscriptions.size() > 0 &&
+      sub_ids.take_shared_subscriptions.size() > 1)
+    {
       std::shared_ptr<MessageT> shared_msg = std::make_shared<MessageT>(*message);
 
-      this->template add_shared_msg_to_buffers<MessageT>(shared_msg, take_shared_subscription_ids);
+      this->template add_shared_msg_to_buffers<MessageT>(shared_msg,
+        sub_ids.take_shared_subscriptions);
       this->template add_owned_msg_to_buffers<MessageT, Alloc, Deleter>(
         std::move(message),
-        take_owned_subscription_ids,
+        sub_ids.take_ownership_subscriptions,
         allocator);
     }
   }
@@ -293,21 +308,60 @@ public:
   get_subscription_intra_process(uint64_t intra_process_subscription_id);
 
 private:
+  struct SubscriptionInfo
+  {
+    SubscriptionInfo() = default;
+
+    SubscriptionIntraProcessBase::SharedPtr subscription;
+    rmw_qos_profile_t qos;
+    const char * topic_name;
+    bool use_take_shared_method;
+  };
+
+  struct PublisherInfo
+  {
+    PublisherInfo() = default;
+
+    PublisherBase::WeakPtr publisher;
+    rmw_qos_profile_t qos;
+    const char * topic_name;
+  };
+
+  struct SplittedSubscriptions
+  {
+    std::vector<uint64_t> take_shared_subscriptions;
+    std::vector<uint64_t> take_ownership_subscriptions;
+  };
+
+  using SubscriptionMap = std::unordered_map<
+    uint64_t, SubscriptionInfo>;
+
+  using PublisherMap = std::unordered_map<
+    uint64_t, PublisherInfo>;
+
+  using PublisherToSubscriptionIdsMap = std::unordered_map<
+    uint64_t, SplittedSubscriptions>;
+
   RCLCPP_PUBLIC
   static uint64_t
   get_next_unique_id();
+
+  void insert_sub_id_for_pub(uint64_t sub_id, uint64_t pub_id, bool use_take_shared_method);
+
+  bool can_communicate(PublisherInfo pub_info, SubscriptionInfo sub_info) const;
 
   template<typename MessageT>
   void
   add_shared_msg_to_buffers(
     std::shared_ptr<const MessageT> message,
-    std::unordered_set<uint64_t> subscription_ids)
+    std::vector<uint64_t> subscription_ids)
   {
-    for (auto it = subscription_ids.begin(); it != subscription_ids.end(); it++) {
-      auto subscription_base = impl_->get_subscription(*it);
-      if (subscription_base == nullptr) {
+    for (auto id : subscription_ids) {
+      auto subscription_it = subscriptions_.find(id);
+      if (subscription_it == subscriptions_.end()) {
         throw std::runtime_error("subscription has unexpectedly gone out of scope");
       }
+      auto subscription_base = subscription_it->second.subscription;
 
       auto subscription =
         std::static_pointer_cast<SubscriptionIntraProcess<MessageT>>(subscription_base);
@@ -323,17 +377,18 @@ private:
   void
   add_owned_msg_to_buffers(
     std::unique_ptr<MessageT, Deleter> message,
-    std::unordered_set<uint64_t> subscription_ids,
+    std::vector<uint64_t> subscription_ids,
     std::shared_ptr<typename allocator::AllocRebind<MessageT, Alloc>::allocator_type> allocator)
   {
     using MessageAllocTraits = allocator::AllocRebind<MessageT, Alloc>;
     using MessageUniquePtr = std::unique_ptr<MessageT, Deleter>;
 
     for (auto it = subscription_ids.begin(); it != subscription_ids.end(); it++) {
-      auto subscription_base = impl_->get_subscription(*it);
-      if (subscription_base == nullptr) {
+      auto subscription_it = subscriptions_.find(*it);
+      if (subscription_it == subscriptions_.end()) {
         throw std::runtime_error("subscription has unexpectedly gone out of scope");
       }
+      auto subscription_base = subscription_it->second.subscription;
 
       auto subscription =
         std::static_pointer_cast<SubscriptionIntraProcess<MessageT>>(subscription_base);
@@ -354,7 +409,11 @@ private:
     }
   }
 
-  IntraProcessManagerImplBase::SharedPtr impl_;
+  PublisherToSubscriptionIdsMap pub_to_subs_;
+  SubscriptionMap subscriptions_;
+  PublisherMap publishers_;
+
+  std::shared_timed_mutex mutex_;
 };
 
 }  // namespace intra_process_manager
