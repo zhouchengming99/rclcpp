@@ -171,12 +171,20 @@ public:
    * \param intra_process_publisher_id the id of the publisher of this message.
    * \param message the message that is being stored.
    */
-  template<typename MessageT>
+  template<
+    typename MessageT,
+    typename Alloc = std::allocator<void>>
   void
   do_intra_process_publish(
     uint64_t intra_process_publisher_id,
-    std::shared_ptr<const MessageT> message)
+    std::shared_ptr<const MessageT> message,
+    std::shared_ptr<typename allocator::AllocRebind<MessageT, Alloc>::allocator_type> allocator)
   {
+    using MessageAllocTraits = allocator::AllocRebind<MessageT, Alloc>;
+    using MessageAlloc = typename MessageAllocTraits::allocator_type;
+    using MessageDeleter = allocator::Deleter<MessageAlloc, MessageT>;
+    using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
+
     std::unordered_set<uint64_t> take_shared_subscription_ids;
     std::unordered_set<uint64_t> take_owned_subscription_ids;
 
@@ -188,10 +196,20 @@ public:
     this->template add_shared_msg_to_buffers<MessageT>(message, take_shared_subscription_ids);
 
     if (take_owned_subscription_ids.size() > 0) {
-      auto unique_msg = std::make_unique<MessageT>(*message);
+      MessageUniquePtr unique_msg;
+      MessageDeleter * deleter = std::get_deleter<MessageDeleter, const MessageT>(message);
+      auto ptr = MessageAllocTraits::allocate(*allocator.get(), 1);
+      MessageAllocTraits::construct(*allocator.get(), ptr, *message);
+      if (deleter) {
+        unique_msg = MessageUniquePtr(ptr, *deleter);
+      } else {
+        unique_msg = MessageUniquePtr(ptr);
+      }
+
       this->template add_owned_msg_to_buffers<MessageT>(
         std::move(unique_msg),
-        take_owned_subscription_ids);
+        take_owned_subscription_ids,
+        allocator);
     }
   }
 
@@ -220,11 +238,13 @@ public:
    */
   template<
     typename MessageT,
+    typename Alloc = std::allocator<void>,
     typename Deleter = std::default_delete<MessageT>>
   void
   do_intra_process_publish(
     uint64_t intra_process_publisher_id,
-    std::unique_ptr<MessageT, Deleter> message)
+    std::unique_ptr<MessageT, Deleter> message,
+    std::shared_ptr<typename allocator::AllocRebind<MessageT, Alloc>::allocator_type> allocator)
   {
     std::unordered_set<uint64_t> take_shared_subscription_ids;
     std::unordered_set<uint64_t> take_owned_subscription_ids;
@@ -243,16 +263,18 @@ public:
       take_owned_subscription_ids.insert(
         take_shared_subscription_ids.begin(), take_shared_subscription_ids.end());
 
-      this->template add_owned_msg_to_buffers<MessageT, Deleter>(
+      this->template add_owned_msg_to_buffers<MessageT, Alloc, Deleter>(
         std::move(message),
-        take_owned_subscription_ids);
+        take_owned_subscription_ids,
+        allocator);
     } else if (take_owned_subscription_ids.size() > 0 && take_shared_subscription_ids.size() > 1) {
       std::shared_ptr<MessageT> shared_msg = std::make_shared<MessageT>(*message);
 
       this->template add_shared_msg_to_buffers<MessageT>(shared_msg, take_shared_subscription_ids);
-      this->template add_owned_msg_to_buffers<MessageT, Deleter>(
+      this->template add_owned_msg_to_buffers<MessageT, Alloc, Deleter>(
         std::move(message),
-        take_owned_subscription_ids);
+        take_owned_subscription_ids,
+        allocator);
     }
   }
 
@@ -296,12 +318,17 @@ private:
 
   template<
     typename MessageT,
+    typename Alloc = std::allocator<void>,
     typename Deleter = std::default_delete<MessageT>>
   void
   add_owned_msg_to_buffers(
     std::unique_ptr<MessageT, Deleter> message,
-    std::unordered_set<uint64_t> subscription_ids)
+    std::unordered_set<uint64_t> subscription_ids,
+    std::shared_ptr<typename allocator::AllocRebind<MessageT, Alloc>::allocator_type> allocator)
   {
+    using MessageAllocTraits = allocator::AllocRebind<MessageT, Alloc>;
+    using MessageUniquePtr = std::unique_ptr<MessageT, Deleter>;
+
     for (auto it = subscription_ids.begin(); it != subscription_ids.end(); it++) {
       auto subscription_base = impl_->get_subscription(*it);
       if (subscription_base == nullptr) {
@@ -316,7 +343,12 @@ private:
         subscription->provide_intra_process_message(std::move(message));
       } else {
         // Copy the message since we have additional subscriptions to serve
-        std::unique_ptr<MessageT, Deleter> copy_message = std::make_unique<MessageT>(*message);
+        MessageUniquePtr copy_message;
+        Deleter deleter = message.get_deleter();
+        auto ptr = MessageAllocTraits::allocate(*allocator.get(), 1);
+        MessageAllocTraits::construct(*allocator.get(), ptr, *message);
+        copy_message = MessageUniquePtr(ptr, deleter);
+
         subscription->provide_intra_process_message(std::move(copy_message));
       }
     }

@@ -231,9 +231,10 @@ protected:
       throw std::runtime_error("cannot publish msg which is a null pointer");
     }
 
-    ipm->template do_intra_process_publish<MessageT>(
+    ipm->template do_intra_process_publish<MessageT, Alloc>(
       intra_process_publisher_id_,
-      std::move(msg));
+      std::move(msg),
+      message_allocator_);
   }
 
   void
@@ -248,9 +249,10 @@ protected:
       throw std::runtime_error("cannot publish msg which is a null pointer");
     }
 
-    ipm->template do_intra_process_publish<MessageT>(
+    ipm->template do_intra_process_publish<MessageT, Alloc>(
       intra_process_publisher_id_,
-      std::move(msg));
+      std::move(msg),
+      message_allocator_);
   }
 
   std::shared_ptr<MessageAlloc> message_allocator_;
