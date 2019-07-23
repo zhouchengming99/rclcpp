@@ -79,9 +79,16 @@ public:
     "BufferT is not a valid type");
 
   TypedIntraProcessBuffer(
-    std::unique_ptr<BufferImplementationBase<BufferT>> buffer_impl)
+    std::unique_ptr<BufferImplementationBase<BufferT>> buffer_impl,
+    std::shared_ptr<Alloc> allocator = nullptr)
   {
     buffer_ = std::move(buffer_impl);
+
+    if (!allocator) {
+      message_allocator_ = std::make_shared<MessageAlloc>();
+    } else {
+      message_allocator_ = std::make_shared<MessageAlloc>(*allocator.get());
+    }
   }
 
   void add_shared(MessageSharedPtr msg)
@@ -121,6 +128,9 @@ public:
 
 private:
   std::unique_ptr<BufferImplementationBase<BufferT>> buffer_;
+
+  std::shared_ptr<MessageAlloc> message_allocator_;
+  MessageDeleter message_deleter_;
 
   // MessageSharedPtr to MessageSharedPtr
   template<typename DestinationT>
@@ -175,7 +185,18 @@ private:
   consume_unique_impl()
   {
     MessageSharedPtr buffer_msg = buffer_->dequeue();
-    return std::make_unique<MessageT>(*buffer_msg);
+
+    MessageUniquePtr unique_msg;
+    MessageDeleter * deleter = std::get_deleter<MessageDeleter, const MessageT>(buffer_msg);
+    auto ptr = MessageAllocTraits::allocate(*message_allocator_.get(), 1);
+    MessageAllocTraits::construct(*message_allocator_.get(), ptr, *buffer_msg);
+    if (deleter) {
+      unique_msg = MessageUniquePtr(ptr, *deleter);
+    } else {
+      unique_msg = MessageUniquePtr(ptr);
+    }
+
+    return unique_msg;
   }
 
   // MessageUniquePtr to MessageUniquePtr

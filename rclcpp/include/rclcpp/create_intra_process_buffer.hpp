@@ -30,12 +30,12 @@ namespace rclcpp
 
 template<
   typename MessageT,
-  typename Alloc>
+  typename Alloc = std::allocator<void>>
 typename intra_process_buffer::IntraProcessBuffer<MessageT, Alloc>::UniquePtr
 create_intra_process_buffer(
   IntraProcessBufferType buffer_type,
-  rmw_qos_profile_t qos
-)
+  rmw_qos_profile_t qos,
+  std::shared_ptr<Alloc> allocator)
 {
   using MessageAllocTraits = allocator::AllocRebind<MessageT, Alloc>;
   using MessageAlloc = typename MessageAllocTraits::allocator_type;
@@ -56,10 +56,12 @@ create_intra_process_buffer(
           std::make_unique<rclcpp::intra_process_buffer::RingBufferImplementation<BufferT>>(
           buffer_size);
 
-        // construct the intra_process_buffer
+        // Construct the intra_process_buffer
         buffer =
           std::make_unique<rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT, Alloc,
-            BufferT>>(std::move(buffer_implementation));
+            BufferT>>(
+              std::move(buffer_implementation),
+              allocator);
 
         break;
       }
@@ -71,10 +73,11 @@ create_intra_process_buffer(
           std::make_unique<rclcpp::intra_process_buffer::RingBufferImplementation<BufferT>>(
           buffer_size);
 
-        // construct the intra_process_buffer
+        // Construct the intra_process_buffer
         buffer =
           std::make_unique<rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT, Alloc,
-            BufferT>>(std::move(buffer_implementation));
+            BufferT>>(std::move(buffer_implementation),
+              allocator);
 
         break;
       }

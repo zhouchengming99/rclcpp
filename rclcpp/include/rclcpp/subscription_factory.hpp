@@ -120,7 +120,7 @@ create_subscription_factory(
     };
 
   factory.create_typed_subscription_intra_process =
-    [any_subscription_callback](
+    [allocator, any_subscription_callback](
     rclcpp::IntraProcessBufferType buffer_type,
     rclcpp::Context::SharedPtr context,
     const std::string & topic_name,
@@ -136,6 +136,7 @@ create_subscription_factory(
       auto sub_intra_process =
         std::make_shared<SubscriptionIntraProcess<MessageT, Alloc>>(
         any_subscription_callback,
+        allocator,
         context,
         topic_name,
         subscription_options.qos,

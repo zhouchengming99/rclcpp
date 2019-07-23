@@ -249,6 +249,8 @@ public:
     std::unique_ptr<MessageT, Deleter> message,
     std::shared_ptr<typename allocator::AllocRebind<MessageT, Alloc>::allocator_type> allocator)
   {
+    using MessageAllocTraits = allocator::AllocRebind<MessageT, Alloc>;
+
     std::shared_lock<std::shared_timed_mutex> lock(mutex_);
 
     auto publisher_it = pub_to_subs_.find(intra_process_publisher_id);
@@ -261,14 +263,19 @@ public:
     }
     const auto & sub_ids = publisher_it->second;
 
-    if (sub_ids.take_ownership_subscriptions.size() == 0) {
+    if (sub_ids.take_ownership_subscriptions.empty()) {
+      // None of the buffers require ownership, so we promote the pointer
       std::shared_ptr<MessageT> msg = std::move(message);
 
       this->template add_shared_msg_to_buffers<MessageT>(msg, sub_ids.take_shared_subscriptions);
-    } else if (sub_ids.take_ownership_subscriptions.size() > 0 &&
+    }
+    else if (!sub_ids.take_ownership_subscriptions.empty() &&
       sub_ids.take_shared_subscriptions.size() <= 1)
     {
-      // merge the two vector of ids into a unique one
+      // There is at maximum 1 buffer that does not require ownership.
+      // So we this case is equivalent to all the buffers requiring ownership
+
+      // Merge the two vector of ids into a unique one
       std::vector<uint64_t> concatenated_vector(sub_ids.take_shared_subscriptions);
       concatenated_vector.insert(
         concatenated_vector.end(),
@@ -279,10 +286,16 @@ public:
         std::move(message),
         concatenated_vector,
         allocator);
-    } else if (sub_ids.take_ownership_subscriptions.size() > 0 &&
+    }
+    else if (!sub_ids.take_ownership_subscriptions.empty() &&
       sub_ids.take_shared_subscriptions.size() > 1)
     {
-      std::shared_ptr<MessageT> shared_msg = std::make_shared<MessageT>(*message);
+      // Construct a new shared pointer from the message
+      // for the buffers that do not require ownership
+      std::shared_ptr<MessageT> shared_msg;
+      auto ptr = MessageAllocTraits::allocate(*allocator.get(), 1);
+      MessageAllocTraits::construct(*allocator.get(), ptr, *message);
+      shared_msg = std::shared_ptr<MessageT>(ptr);
 
       this->template add_shared_msg_to_buffers<MessageT>(shared_msg,
         sub_ids.take_shared_subscriptions);

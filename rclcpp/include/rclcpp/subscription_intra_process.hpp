@@ -53,6 +53,7 @@ public:
 
   SubscriptionIntraProcess(
     AnySubscriptionCallback<MessageT, Alloc> callback,
+    std::shared_ptr<Alloc> allocator,
     rclcpp::Context::SharedPtr context,
     const std::string & topic_name,
     rmw_qos_profile_t qos_profile,
@@ -63,7 +64,8 @@ public:
     // Create the intra-process buffer.
     buffer_ = rclcpp::create_intra_process_buffer<MessageT, Alloc>(
       buffer_type,
-      qos_profile);
+      qos_profile,
+      allocator);
 
     // Create the guard condition.
     rcl_guard_condition_options_t guard_condition_options =
