@@ -413,7 +413,7 @@ private:
   SubscriptionMap subscriptions_;
   PublisherMap publishers_;
 
-  std::shared_timed_mutex mutex_;
+  mutable std::shared_timed_mutex mutex_;
 };
 
 }  // namespace intra_process_manager

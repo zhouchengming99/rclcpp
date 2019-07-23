@@ -31,6 +31,8 @@ uint64_t
 IntraProcessManager::add_publisher(
   rclcpp::PublisherBase::SharedPtr publisher)
 {
+  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+
   auto id = IntraProcessManager::get_next_unique_id();
 
   publishers_[id].publisher = publisher;
@@ -54,6 +56,8 @@ uint64_t
 IntraProcessManager::add_subscription(
   SubscriptionIntraProcessBase::SharedPtr subscription)
 {
+  std::unique_lock<std::shared_timed_mutex> lock(mutex_);
+
   auto id = IntraProcessManager::get_next_unique_id();
 
   subscriptions_[id].subscription = subscription;
@@ -106,6 +110,8 @@ IntraProcessManager::remove_publisher(uint64_t intra_process_publisher_id)
 bool
 IntraProcessManager::matches_any_publishers(const rmw_gid_t * id) const
 {
+  std::shared_lock<std::shared_timed_mutex> lock(mutex_);
+
   for (auto & publisher_pair : publishers_) {
     auto publisher = publisher_pair.second.publisher.lock();
     if (!publisher) {
@@ -121,6 +127,8 @@ IntraProcessManager::matches_any_publishers(const rmw_gid_t * id) const
 size_t
 IntraProcessManager::get_subscription_count(uint64_t intra_process_publisher_id) const
 {
+  std::shared_lock<std::shared_timed_mutex> lock(mutex_);
+
   auto publisher_it = pub_to_subs_.find(intra_process_publisher_id);
   if (publisher_it == pub_to_subs_.end()) {
     // Publisher is either invalid or no longer exists.
