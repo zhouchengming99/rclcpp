@@ -130,7 +130,6 @@ private:
   std::unique_ptr<BufferImplementationBase<BufferT>> buffer_;
 
   std::shared_ptr<MessageAlloc> message_allocator_;
-  MessageDeleter message_deleter_;
 
   // MessageSharedPtr to MessageSharedPtr
   template<typename DestinationT>
@@ -149,7 +148,19 @@ private:
   >::type
   add_shared_impl(MessageSharedPtr shared_msg)
   {
-    auto unique_msg = std::make_unique<MessageT>(*shared_msg);
+    // This should not happen: here a copy is unconditionally made, while the intra-process manager
+    // can decide whether a copy is needed depending on the number and the type of buffers
+
+    MessageUniquePtr unique_msg;
+    MessageDeleter * deleter = std::get_deleter<MessageDeleter, const MessageT>(shared_msg);
+    auto ptr = MessageAllocTraits::allocate(*message_allocator_.get(), 1);
+    MessageAllocTraits::construct(*message_allocator_.get(), ptr, *shared_msg);
+    if (deleter) {
+      unique_msg = MessageUniquePtr(ptr, *deleter);
+    } else {
+      unique_msg = MessageUniquePtr(ptr);
+    }
+
     buffer_->enqueue(std::move(unique_msg));
   }
 
