@@ -16,6 +16,7 @@
 
 #include <string>
 #include <memory>
+#include <vector>
 
 #include "rclcpp/exceptions.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -30,12 +31,12 @@ public:
     (void)msg;
   }
 
-protected:
   static void SetUpTestCase()
   {
     rclcpp::init(0, nullptr);
   }
 
+protected:
   void SetUp()
   {
     node = std::make_shared<rclcpp::Node>("test_subscription", "/ns");
@@ -47,6 +48,31 @@ protected:
   }
 
   rclcpp::Node::SharedPtr node;
+};
+
+struct TestParameters
+{
+  TestParameters(rclcpp::QoS qos, std::string description)
+  : qos(qos), description(description) {}
+  rclcpp::QoS qos;
+  std::string description;
+};
+
+std::ostream & operator<<(std::ostream & out, const TestParameters & params)
+{
+  out << params.description;
+  return out;
+}
+
+class TestSubscriptionInvalidIntraprocessQos
+  : public TestSubscription,
+  public ::testing::WithParamInterface<TestParameters>
+{
+protected:
+  void initialize(const rclcpp::NodeOptions & node_options = rclcpp::NodeOptions())
+  {
+    node = std::make_shared<rclcpp::Node>("test_subscription", "/ns", node_options);
+  }
 };
 
 class TestSubscriptionSub : public ::testing::Test
@@ -260,3 +286,47 @@ TEST_F(TestSubscription, callback_bind) {
     auto sub = node->create_subscription<IntraProcessMessage>("topic", 1, callback);
   }
 }
+
+/*
+   Testing subscription with intraprocess enabled and invalid QoS
+ */
+TEST_P(TestSubscriptionInvalidIntraprocessQos, test_subscription_throws) {
+  initialize(rclcpp::NodeOptions().use_intra_process_comms(true));
+  rclcpp::QoS qos = GetParam().qos;
+  using rcl_interfaces::msg::IntraProcessMessage;
+  {
+    auto callback = std::bind(
+      &TestSubscriptionInvalidIntraprocessQos::OnMessage,
+      this,
+      std::placeholders::_1);
+
+    ASSERT_THROW(
+      {auto subscription = node->create_subscription<IntraProcessMessage>(
+          "topic",
+          qos,
+          callback);},
+      std::invalid_argument);
+  }
+}
+
+static std::vector<TestParameters> invalid_qos_profiles()
+{
+  std::vector<TestParameters> parameters;
+
+  parameters.reserve(2);
+  parameters.push_back(
+    TestParameters(
+      rclcpp::QoS(rclcpp::KeepLast(10)).transient_local(),
+      "transient_local_qos"));
+  parameters.push_back(
+    TestParameters(
+      rclcpp::QoS(rclcpp::KeepAll()),
+      "keep_all_qos"));
+
+  return parameters;
+}
+
+INSTANTIATE_TEST_CASE_P(
+  TestSubscriptionThrows, TestSubscriptionInvalidIntraprocessQos,
+  ::testing::ValuesIn(invalid_qos_profiles()),
+  ::testing::PrintToStringParamName());

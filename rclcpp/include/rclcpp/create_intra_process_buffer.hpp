@@ -60,8 +60,8 @@ create_intra_process_buffer(
         buffer =
           std::make_unique<rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT, Alloc,
             BufferT>>(
-              std::move(buffer_implementation),
-              allocator);
+          std::move(buffer_implementation),
+          allocator);
 
         break;
       }
@@ -76,8 +76,9 @@ create_intra_process_buffer(
         // Construct the intra_process_buffer
         buffer =
           std::make_unique<rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT, Alloc,
-            BufferT>>(std::move(buffer_implementation),
-              allocator);
+            BufferT>>(
+          std::move(buffer_implementation),
+          allocator);
 
         break;
       }
