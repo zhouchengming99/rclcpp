@@ -46,11 +46,11 @@ NodeTopics::create_publisher(
     // Check if the QoS allows to use intra-process
     if (publisher_options.qos.history == RMW_QOS_POLICY_HISTORY_KEEP_ALL) {
       throw std::invalid_argument(
-              "intraprocess communication is not allowed with keep all history qos policy");
+            "intraprocess communication is not allowed with keep all history qos policy");
     }
     if (publisher_options.qos.durability != RMW_QOS_POLICY_DURABILITY_VOLATILE) {
       throw std::invalid_argument(
-              "intraprocess communication allowed only with volatile durability");
+            "intraprocess communication allowed only with volatile durability");
     }
     // Get the intra process manager for this context.
     auto context = node_base_->get_context();
@@ -114,6 +114,12 @@ NodeTopics::create_subscription(
     if (subscription_options.qos.history == RMW_QOS_POLICY_HISTORY_KEEP_ALL) {
       throw std::invalid_argument(
               "intraprocess communication is not allowed with keep all history qos policy");
+    }
+    if (subscription_options.qos.history == RMW_QOS_POLICY_HISTORY_KEEP_LAST
+        && subscription_options.qos.depth == 0)
+    {
+      throw std::invalid_argument(
+              "intraprocess communication is not allowed with keep last history and 0 depth qos policy");
     }
     if (subscription_options.qos.durability != RMW_QOS_POLICY_DURABILITY_VOLATILE) {
       throw std::invalid_argument(

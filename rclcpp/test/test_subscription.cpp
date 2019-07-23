@@ -37,9 +37,9 @@ public:
   }
 
 protected:
-  void SetUp()
+  void initialize(const rclcpp::NodeOptions & node_options = rclcpp::NodeOptions())
   {
-    node = std::make_shared<rclcpp::Node>("test_subscription", "/ns");
+    node = std::make_shared<rclcpp::Node>("test_subscription", "/ns", node_options);
   }
 
   void TearDown()
@@ -67,13 +67,7 @@ std::ostream & operator<<(std::ostream & out, const TestParameters & params)
 class TestSubscriptionInvalidIntraprocessQos
   : public TestSubscription,
   public ::testing::WithParamInterface<TestParameters>
-{
-protected:
-  void initialize(const rclcpp::NodeOptions & node_options = rclcpp::NodeOptions())
-  {
-    node = std::make_shared<rclcpp::Node>("test_subscription", "/ns", node_options);
-  }
-};
+{};
 
 class TestSubscriptionSub : public ::testing::Test
 {
@@ -146,6 +140,7 @@ public:
    Testing subscription construction and destruction.
  */
 TEST_F(TestSubscription, construction_and_destruction) {
+  initialize();
   using rcl_interfaces::msg::IntraProcessMessage;
   auto callback = [](const IntraProcessMessage::SharedPtr msg) {
       (void)msg;
@@ -197,6 +192,7 @@ TEST_F(TestSubscriptionSub, construction_and_destruction) {
    Testing subscription creation signatures.
  */
 TEST_F(TestSubscription, various_creation_signatures) {
+  initialize();
   using rcl_interfaces::msg::IntraProcessMessage;
   auto cb = [](rcl_interfaces::msg::IntraProcessMessage::SharedPtr) {};
   {
@@ -267,6 +263,7 @@ TEST_F(TestSubscription, various_creation_signatures) {
    Testing subscriptions using std::bind.
  */
 TEST_F(TestSubscription, callback_bind) {
+  initialize();
   using rcl_interfaces::msg::IntraProcessMessage;
   {
     // Member callback for plain class
@@ -313,7 +310,7 @@ static std::vector<TestParameters> invalid_qos_profiles()
 {
   std::vector<TestParameters> parameters;
 
-  parameters.reserve(2);
+  parameters.reserve(3);
   parameters.push_back(
     TestParameters(
       rclcpp::QoS(rclcpp::KeepLast(10)).transient_local(),
@@ -322,6 +319,10 @@ static std::vector<TestParameters> invalid_qos_profiles()
     TestParameters(
       rclcpp::QoS(rclcpp::KeepAll()),
       "keep_all_qos"));
+  parameters.push_back(
+    TestParameters(
+      rclcpp::QoS(rclcpp::KeepLast(0)),
+      "keep_last_zero_depth_qos"));
 
   return parameters;
 }
