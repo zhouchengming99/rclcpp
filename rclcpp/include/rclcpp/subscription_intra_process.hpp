@@ -36,7 +36,8 @@ namespace rclcpp
 
 template<
   typename MessageT,
-  typename Alloc = std::allocator<void>>
+  typename Alloc = std::allocator<void>,
+  typename Deleter = std::default_delete<MessageT>>
 class SubscriptionIntraProcess : public SubscriptionIntraProcessBase
 {
 public:
@@ -44,12 +45,11 @@ public:
 
   using MessageAllocTraits = allocator::AllocRebind<MessageT, Alloc>;
   using MessageAlloc = typename MessageAllocTraits::allocator_type;
-  using MessageDeleter = allocator::Deleter<MessageAlloc, MessageT>;
   using ConstMessageSharedPtr = std::shared_ptr<const MessageT>;
-  using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
+  using MessageUniquePtr = std::unique_ptr<MessageT, Deleter>;
 
   using BufferUniquePtr =
-    typename intra_process_buffer::IntraProcessBuffer<MessageT, Alloc>::UniquePtr;
+    typename intra_process_buffer::IntraProcessBuffer<MessageT, Alloc, Deleter>::UniquePtr;
 
   SubscriptionIntraProcess(
     AnySubscriptionCallback<MessageT, Alloc> callback,
@@ -62,7 +62,7 @@ public:
     any_callback_(callback)
   {
     // Create the intra-process buffer.
-    buffer_ = rclcpp::create_intra_process_buffer<MessageT, Alloc>(
+    buffer_ = rclcpp::create_intra_process_buffer<MessageT, Alloc, Deleter>(
       buffer_type,
       qos_profile,
       allocator);

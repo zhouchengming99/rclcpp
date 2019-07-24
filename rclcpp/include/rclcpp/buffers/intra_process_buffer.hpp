@@ -41,15 +41,13 @@ public:
 
 template<
   typename MessageT,
-  typename Alloc = std::allocator<void>>
+  typename Alloc = std::allocator<void>,
+  typename MessageDeleter = std::default_delete<MessageT>>
 class IntraProcessBuffer : public IntraProcessBufferBase
 {
 public:
   RCLCPP_SMART_PTR_DEFINITIONS(IntraProcessBuffer)
 
-  using MessageAllocTraits = allocator::AllocRebind<MessageT, Alloc>;
-  using MessageAlloc = typename MessageAllocTraits::allocator_type;
-  using MessageDeleter = allocator::Deleter<MessageAlloc, MessageT>;
   using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
   using MessageSharedPtr = std::shared_ptr<const MessageT>;
 
@@ -63,15 +61,15 @@ public:
 template<
   typename MessageT,
   typename Alloc = std::allocator<void>,
+  typename MessageDeleter = std::default_delete<MessageT>,
   typename BufferT = std::unique_ptr<MessageT>>
-class TypedIntraProcessBuffer : public IntraProcessBuffer<MessageT, Alloc>
+class TypedIntraProcessBuffer : public IntraProcessBuffer<MessageT, Alloc, MessageDeleter>
 {
 public:
   RCLCPP_SMART_PTR_DEFINITIONS(TypedIntraProcessBuffer)
 
   using MessageAllocTraits = allocator::AllocRebind<MessageT, Alloc>;
   using MessageAlloc = typename MessageAllocTraits::allocator_type;
-  using MessageDeleter = allocator::Deleter<MessageAlloc, MessageT>;
   using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
   using MessageSharedPtr = std::shared_ptr<const MessageT>;
   static_assert(std::is_same<BufferT, MessageSharedPtr>::value ||

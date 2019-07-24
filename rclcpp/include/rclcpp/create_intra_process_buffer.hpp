@@ -30,18 +30,16 @@ namespace rclcpp
 
 template<
   typename MessageT,
-  typename Alloc = std::allocator<void>>
+  typename Alloc = std::allocator<void>,
+  typename Deleter = std::default_delete<MessageT>>
 typename intra_process_buffer::IntraProcessBuffer<MessageT, Alloc>::UniquePtr
 create_intra_process_buffer(
   IntraProcessBufferType buffer_type,
   rmw_qos_profile_t qos,
   std::shared_ptr<Alloc> allocator)
 {
-  using MessageAllocTraits = allocator::AllocRebind<MessageT, Alloc>;
-  using MessageAlloc = typename MessageAllocTraits::allocator_type;
-  using MessageDeleter = allocator::Deleter<MessageAlloc, MessageT>;
   using MessageSharedPtr = std::shared_ptr<const MessageT>;
-  using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
+  using MessageUniquePtr = std::unique_ptr<MessageT, Deleter>;
 
   size_t buffer_size = qos.depth;
 
@@ -59,7 +57,7 @@ create_intra_process_buffer(
         // Construct the intra_process_buffer
         buffer =
           std::make_unique<rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT, Alloc,
-            BufferT>>(
+            Deleter, BufferT>>(
           std::move(buffer_implementation),
           allocator);
 
@@ -76,7 +74,7 @@ create_intra_process_buffer(
         // Construct the intra_process_buffer
         buffer =
           std::make_unique<rclcpp::intra_process_buffer::TypedIntraProcessBuffer<MessageT, Alloc,
-            BufferT>>(
+            Deleter, BufferT>>(
           std::move(buffer_implementation),
           allocator);
 
