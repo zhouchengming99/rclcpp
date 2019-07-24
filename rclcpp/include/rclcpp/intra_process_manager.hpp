@@ -269,7 +269,7 @@ public:
       std::shared_ptr<MessageT> msg = std::move(message);
 
       this->template add_shared_msg_to_buffers<MessageT>(msg, sub_ids.take_shared_subscriptions);
-    } else if (!sub_ids.take_ownership_subscriptions.empty() &&
+    } else if (!sub_ids.take_ownership_subscriptions.empty() && // NOLINT
       sub_ids.take_shared_subscriptions.size() <= 1)
     {
       // There is at maximum 1 buffer that does not require ownership.
@@ -286,7 +286,7 @@ public:
         std::move(message),
         concatenated_vector,
         allocator);
-    } else if (!sub_ids.take_ownership_subscriptions.empty() &&
+    } else if (!sub_ids.take_ownership_subscriptions.empty() && // NOLINT
       sub_ids.take_shared_subscriptions.size() > 1)
     {
       // Construct a new shared pointer from the message
