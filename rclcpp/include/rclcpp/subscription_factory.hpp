@@ -134,7 +134,7 @@ create_subscription_factory(
       }
 
       auto sub_intra_process =
-        std::make_shared<SubscriptionIntraProcess<MessageT, Alloc>>(
+        std::make_shared<SubscriptionIntraProcess<MessageT, Alloc, std::default_delete<MessageT>, CallbackMessageT>>(
         any_subscription_callback,
         allocator,
         context,

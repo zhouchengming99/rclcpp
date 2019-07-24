@@ -72,14 +72,17 @@ public:
   using MessageAlloc = typename MessageAllocTraits::allocator_type;
   using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
   using MessageSharedPtr = std::shared_ptr<const MessageT>;
-  static_assert(std::is_same<BufferT, MessageSharedPtr>::value ||
-    std::is_same<BufferT, MessageUniquePtr>::value,
-    "BufferT is not a valid type");
 
   TypedIntraProcessBuffer(
     std::unique_ptr<BufferImplementationBase<BufferT>> buffer_impl,
     std::shared_ptr<Alloc> allocator = nullptr)
   {
+    bool valid_type = (std::is_same<BufferT, MessageSharedPtr>::value ||
+      std::is_same<BufferT, MessageUniquePtr>::value);
+    if (!valid_type) {
+      throw std::runtime_error("Creating TypedIntraProcessBuffer with not valid BufferT");
+    }
+
     buffer_ = std::move(buffer_impl);
 
     if (!allocator) {

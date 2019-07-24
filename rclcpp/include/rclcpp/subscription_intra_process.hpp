@@ -37,7 +37,8 @@ namespace rclcpp
 template<
   typename MessageT,
   typename Alloc = std::allocator<void>,
-  typename Deleter = std::default_delete<MessageT>>
+  typename Deleter = std::default_delete<MessageT>,
+  typename CallbackMessageT = MessageT>
 class SubscriptionIntraProcess : public SubscriptionIntraProcessBase
 {
 public:
@@ -52,7 +53,7 @@ public:
     typename intra_process_buffer::IntraProcessBuffer<MessageT, Alloc, Deleter>::UniquePtr;
 
   SubscriptionIntraProcess(
-    AnySubscriptionCallback<MessageT, Alloc> callback,
+    AnySubscriptionCallback<CallbackMessageT, Alloc> callback,
     std::shared_ptr<Alloc> allocator,
     rclcpp::Context::SharedPtr context,
     const std::string & topic_name,
@@ -61,6 +62,10 @@ public:
   : SubscriptionIntraProcessBase(topic_name, qos_profile),
     any_callback_(callback)
   {
+    if (!std::is_same<MessageT, CallbackMessageT>::value) {
+      throw std::runtime_error("SubscriptionIntraProcess wrong callback type");
+    }
+
     // Create the intra-process buffer.
     buffer_ = rclcpp::create_intra_process_buffer<MessageT, Alloc, Deleter>(
       buffer_type,
@@ -89,13 +94,7 @@ public:
 
   void execute()
   {
-    if (any_callback_.use_take_shared_method()) {
-      ConstMessageSharedPtr msg = buffer_->consume_shared();
-      any_callback_.dispatch_intra_process(msg, rmw_message_info_t());
-    } else {
-      MessageUniquePtr msg = buffer_->consume_unique();
-      any_callback_.dispatch_intra_process(std::move(msg), rmw_message_info_t());
-    }
+    execute_impl<CallbackMessageT>();
   }
 
   void
@@ -126,7 +125,27 @@ private:
     (void)ret;
   }
 
-  AnySubscriptionCallback<MessageT, Alloc> any_callback_;
+  template<typename T>
+  typename std::enable_if<std::is_same<T, rcl_serialized_message_t>::value, void>::type
+  execute_impl()
+  {
+    throw std::runtime_error("Subscription intra-process can't handler serialized messages");
+  }
+
+  template<class T>
+  typename std::enable_if<!std::is_same<T, rcl_serialized_message_t>::value, void>::type
+  execute_impl()
+  {
+    if (any_callback_.use_take_shared_method()) {
+      ConstMessageSharedPtr msg = buffer_->consume_shared();
+      any_callback_.dispatch_intra_process(msg, rmw_message_info_t());
+    } else {
+      MessageUniquePtr msg = buffer_->consume_unique();
+      any_callback_.dispatch_intra_process(std::move(msg), rmw_message_info_t());
+    }
+  }
+
+  AnySubscriptionCallback<CallbackMessageT, Alloc> any_callback_;
   BufferUniquePtr buffer_;
 };
 
