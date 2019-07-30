@@ -133,8 +133,12 @@ create_subscription_factory(
           IntraProcessBufferType::SharedPtr : IntraProcessBufferType::UniquePtr;
       }
 
+      using MessageAllocTraits = allocator::AllocRebind<MessageT, Alloc>;
+      using MessageAlloc = typename MessageAllocTraits::allocator_type;
+      using MessageDeleter = allocator::Deleter<MessageAlloc, MessageT>;
+
       auto sub_intra_process =
-        std::make_shared<SubscriptionIntraProcess<MessageT, Alloc, std::default_delete<MessageT>, CallbackMessageT>>(
+        std::make_shared<SubscriptionIntraProcess<MessageT, Alloc, MessageDeleter, CallbackMessageT>>(
         any_subscription_callback,
         allocator,
         context,

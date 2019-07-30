@@ -129,7 +129,7 @@ private:
   typename std::enable_if<std::is_same<T, rcl_serialized_message_t>::value, void>::type
   execute_impl()
   {
-    throw std::runtime_error("Subscription intra-process can't handler serialized messages");
+    throw std::runtime_error("Subscription intra-process can't handle serialized messages");
   }
 
   template<class T>
