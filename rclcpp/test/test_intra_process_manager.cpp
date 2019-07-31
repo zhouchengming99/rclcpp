@@ -22,8 +22,6 @@
 
 #define RCLCPP_BUILDING_LIBRARY 1
 #include "rclcpp/allocator/allocator_common.hpp"
-#include "rclcpp/logger.hpp"
-#include "rclcpp/logging.hpp"
 #include "rclcpp/macros.hpp"
 #include "rmw/types.h"
 #include "rmw/qos_profiles.h"
@@ -37,13 +35,6 @@ namespace rclcpp
 namespace intra_process_manager
 {
 class IntraProcessManager;
-}
-
-// This definition is needed because intra_process_manager_impl.hpp uses RCLCPP_* logging macros
-const char *
-get_c_string(const char * string_in)
-{
-  return string_in;
 }
 
 namespace mock
@@ -124,41 +115,10 @@ public:
     message_allocator_ = std::make_shared<MessageAlloc>(*allocator.get());
   }
 
-  void publish(MessageUniquePtr msg)
-  {
-    auto ipm = weak_ipm_.lock();
-    if (!ipm) {
-      throw std::runtime_error(
-              "intra process publish called after destruction of intra process manager");
-    }
-    if (!msg) {
-      throw std::runtime_error("cannot publish msg which is a null pointer");
-    }
-
-    ipm->template do_intra_process_publish<T, Alloc>(
-      intra_process_publisher_id_,
-      std::move(msg),
-      message_allocator_);
-  }
-
-  // This function is actually deprecated in the real rclcpp::publisher, but
-  // here it is used to mimic what happens when publishing both inter and intra-process
-  void publish(MessageSharedPtr msg)
-  {
-    auto ipm = weak_ipm_.lock();
-    if (!ipm) {
-      throw std::runtime_error(
-              "intra process publish called after destruction of intra process manager");
-    }
-    if (!msg) {
-      throw std::runtime_error("cannot publish msg which is a null pointer");
-    }
-
-    ipm->template do_intra_process_publish<T, Alloc>(
-      intra_process_publisher_id_,
-      msg,
-      message_allocator_);
-  }
+  // The following functions use the IntraProcessManager
+  // so they are declared after including it to avoid "invalid use of incomplete type"
+  void publish(MessageUniquePtr msg);
+  void publish(MessageSharedPtr msg);
 
   std::shared_ptr<MessageAlloc> message_allocator_;
 };
@@ -293,7 +253,8 @@ public:
 }  // namespace mock
 }  // namespace rclcpp
 
-// Prevent rclcpp/publisher_base.hpp and rclcpp/subscription.hpp from being imported.
+// Prevent the header files of the mocked classes to be included
+#define RCLCPP__PUBLISHER_HPP_
 #define RCLCPP__PUBLISHER_BASE_HPP_
 #define RCLCPP__SUBSCRIPTION_INTRA_PROCESS_HPP_
 #define RCLCPP__SUBSCRIPTION_INTRA_PROCESS_BASE_HPP_
@@ -304,7 +265,6 @@ public:
 #define SubscriptionIntraProcessBase mock::SubscriptionIntraProcessBase
 #define SubscriptionIntraProcess mock::SubscriptionIntraProcess
 #include "../src/rclcpp/intra_process_manager.cpp"
-#include "../src/rclcpp/logger.cpp"
 #undef Publisher
 #undef PublisherBase
 #undef IntraProcessBuffer
@@ -313,6 +273,52 @@ public:
 
 using ::testing::_;
 using ::testing::UnorderedElementsAre;
+
+namespace rclcpp
+{
+namespace mock
+{
+
+template<typename T, typename Alloc>
+void Publisher<T, Alloc>::publish(MessageUniquePtr msg)
+{
+  auto ipm = weak_ipm_.lock();
+  if (!ipm) {
+    throw std::runtime_error(
+            "intra process publish called after destruction of intra process manager");
+  }
+  if (!msg) {
+    throw std::runtime_error("cannot publish msg which is a null pointer");
+  }
+
+  ipm->template do_intra_process_publish<T, Alloc>(
+    intra_process_publisher_id_,
+    std::move(msg),
+    message_allocator_);
+}
+
+// This function is actually deprecated in the real rclcpp::publisher, but
+// here it is used to mimic what happens when publishing both inter and intra-process
+template<typename T, typename Alloc>
+void Publisher<T, Alloc>::publish(MessageSharedPtr msg)
+{
+  auto ipm = weak_ipm_.lock();
+  if (!ipm) {
+    throw std::runtime_error(
+            "intra process publish called after destruction of intra process manager");
+  }
+  if (!msg) {
+    throw std::runtime_error("cannot publish msg which is a null pointer");
+  }
+
+  ipm->template do_intra_process_publish<T, Alloc>(
+    intra_process_publisher_id_,
+    msg,
+    message_allocator_);
+}
+
+}  // namespace mock
+}  // namespace rclcpp
 
 /*
    This tests how the class connects and disconnects publishers and subscriptions:
