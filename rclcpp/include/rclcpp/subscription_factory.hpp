@@ -137,8 +137,8 @@ create_subscription_factory(
       using MessageAlloc = typename MessageAllocTraits::allocator_type;
       using MessageDeleter = allocator::Deleter<MessageAlloc, MessageT>;
 
-      auto sub_intra_process =
-        std::make_shared<SubscriptionIntraProcess<MessageT, Alloc, MessageDeleter, CallbackMessageT>>(
+      auto sub_intra_process = std::make_shared<
+        SubscriptionIntraProcess<MessageT, Alloc, MessageDeleter, CallbackMessageT>>(
         any_subscription_callback,
         allocator,
         context,

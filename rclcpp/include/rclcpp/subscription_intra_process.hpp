@@ -136,12 +136,15 @@ private:
   typename std::enable_if<!std::is_same<T, rcl_serialized_message_t>::value, void>::type
   execute_impl()
   {
+    rmw_message_info_t msg_info;
+    msg_info.from_intra_process = true;
+
     if (any_callback_.use_take_shared_method()) {
       ConstMessageSharedPtr msg = buffer_->consume_shared();
-      any_callback_.dispatch_intra_process(msg, rmw_message_info_t());
+      any_callback_.dispatch_intra_process(msg, msg_info);
     } else {
       MessageUniquePtr msg = buffer_->consume_unique();
-      any_callback_.dispatch_intra_process(std::move(msg), rmw_message_info_t());
+      any_callback_.dispatch_intra_process(std::move(msg), msg_info);
     }
   }
 
