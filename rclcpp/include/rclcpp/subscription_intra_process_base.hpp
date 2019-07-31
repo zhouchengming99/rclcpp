@@ -34,7 +34,7 @@ namespace rclcpp
 class SubscriptionIntraProcessBase : public rclcpp::Waitable
 {
 public:
-  RCLCPP_SMART_PTR_DEFINITIONS(SubscriptionIntraProcessBase)
+  RCLCPP_SMART_PTR_ALIASES_ONLY(SubscriptionIntraProcessBase)
 
   SubscriptionIntraProcessBase(const std::string & topic_name, rmw_qos_profile_t qos_profile)
   : topic_name_(topic_name), qos_profile_(qos_profile)
@@ -43,6 +43,7 @@ public:
   size_t
   get_number_of_ready_guard_conditions() {return 1;}
 
+  RCLCPP_PUBLIC
   bool
   add_to_wait_set(rcl_wait_set_t * wait_set);
 

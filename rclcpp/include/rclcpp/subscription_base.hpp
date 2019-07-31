@@ -172,6 +172,7 @@ protected:
     event_handlers_.emplace_back(handler);
   }
 
+  RCLCPP_PUBLIC
   bool
   matches_any_intra_process_publishers(const rmw_gid_t * sender_gid) const;
 

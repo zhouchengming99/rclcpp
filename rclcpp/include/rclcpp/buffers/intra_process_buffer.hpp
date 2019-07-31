@@ -31,7 +31,7 @@ namespace intra_process_buffer
 class IntraProcessBufferBase
 {
 public:
-  RCLCPP_SMART_PTR_DEFINITIONS(IntraProcessBufferBase)
+  RCLCPP_SMART_PTR_ALIASES_ONLY(IntraProcessBufferBase)
 
   virtual void clear() = 0;
 
@@ -46,7 +46,7 @@ template<
 class IntraProcessBuffer : public IntraProcessBufferBase
 {
 public:
-  RCLCPP_SMART_PTR_DEFINITIONS(IntraProcessBuffer)
+  RCLCPP_SMART_PTR_ALIASES_ONLY(IntraProcessBuffer)
 
   using MessageUniquePtr = std::unique_ptr<MessageT, MessageDeleter>;
   using MessageSharedPtr = std::shared_ptr<const MessageT>;
