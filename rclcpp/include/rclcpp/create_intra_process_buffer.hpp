@@ -32,7 +32,7 @@ template<
   typename MessageT,
   typename Alloc = std::allocator<void>,
   typename Deleter = std::default_delete<MessageT>>
-typename intra_process_buffer::IntraProcessBuffer<MessageT, Alloc>::UniquePtr
+typename intra_process_buffer::IntraProcessBuffer<MessageT, Alloc, Deleter>::UniquePtr
 create_intra_process_buffer(
   IntraProcessBufferType buffer_type,
   rmw_qos_profile_t qos,
@@ -43,7 +43,7 @@ create_intra_process_buffer(
 
   size_t buffer_size = qos.depth;
 
-  typename intra_process_buffer::IntraProcessBuffer<MessageT, Alloc>::UniquePtr buffer;
+  typename intra_process_buffer::IntraProcessBuffer<MessageT, Alloc, Deleter>::UniquePtr buffer;
 
   switch (buffer_type) {
     case IntraProcessBufferType::SharedPtr:

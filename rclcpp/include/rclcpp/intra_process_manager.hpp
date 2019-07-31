@@ -210,7 +210,7 @@ public:
         unique_msg = MessageUniquePtr(ptr);
       }
 
-      this->template add_owned_msg_to_buffers<MessageT>(
+      this->template add_owned_msg_to_buffers<MessageT, Alloc, MessageDeleter>(
         std::move(unique_msg),
         sub_ids.take_ownership_subscriptions,
         allocator);
