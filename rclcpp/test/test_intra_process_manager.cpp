@@ -52,14 +52,15 @@ public:
   RCLCPP_SMART_PTR_DEFINITIONS(PublisherBase)
 
   PublisherBase()
-  : mock_topic_name("topic") {}
+  : topic_name("topic")
+  {}
 
   virtual ~PublisherBase()
   {}
 
   const char * get_topic_name() const
   {
-    return mock_topic_name.c_str();
+    return topic_name.c_str();
   }
 
   void set_intra_process_manager(
@@ -91,7 +92,7 @@ public:
   }
 
   rmw_qos_profile_t qos_profile;
-  std::string mock_topic_name;
+  std::string topic_name;
   uint64_t intra_process_publisher_id_;
   IntraProcessManagerWeakPtr weak_ipm_;
 };
@@ -139,31 +140,34 @@ public:
   using ConstMessageSharedPtr = std::shared_ptr<const MessageT>;
   using MessageUniquePtr = std::unique_ptr<MessageT>;
 
-  IntraProcessBuffer() {}
+  RCLCPP_SMART_PTR_DEFINITIONS(IntraProcessBuffer)
+
+  IntraProcessBuffer()
+  {}
 
   void add(ConstMessageSharedPtr msg)
   {
-    mock_message_ptr = reinterpret_cast<std::uintptr_t>(msg.get());
+    message_ptr = reinterpret_cast<std::uintptr_t>(msg.get());
     shared_msg = msg;
   }
 
   void add(MessageUniquePtr msg)
   {
-    mock_message_ptr = reinterpret_cast<std::uintptr_t>(msg.get());
+    message_ptr = reinterpret_cast<std::uintptr_t>(msg.get());
     unique_msg = std::move(msg);
   }
 
   void pop(std::uintptr_t & msg_ptr)
   {
-    msg_ptr = mock_message_ptr;
-    mock_message_ptr = 0;
+    msg_ptr = message_ptr;
+    message_ptr = 0;
   }
 
   // need to store the messages somewhere otherwise the memory address will be reused
   ConstMessageSharedPtr shared_msg;
   MessageUniquePtr unique_msg;
 
-  std::uintptr_t mock_message_ptr;
+  std::uintptr_t message_ptr;
 };
 
 }  // namespace mock
@@ -179,57 +183,14 @@ namespace mock
 class SubscriptionIntraProcessBase
 {
 public:
-  RCLCPP_SMART_PTR_DEFINITIONS(SubscriptionIntraProcessBase)
+  RCLCPP_SMART_PTR_ALIASES_ONLY(SubscriptionIntraProcessBase)
+
+  SubscriptionIntraProcessBase()
+  : qos_profile(rmw_qos_profile_default), topic_name("topic")
+  {}
 
   virtual bool
   use_take_shared_method() const = 0;
-
-  virtual rmw_qos_profile_t
-  get_actual_qos() = 0;
-
-  virtual const char *
-  get_topic_name() = 0;
-};
-
-template<typename MessageT>
-class SubscriptionIntraProcess : public SubscriptionIntraProcessBase
-{
-public:
-  RCLCPP_SMART_PTR_DEFINITIONS(SubscriptionIntraProcess)
-
-  SubscriptionIntraProcess()
-  : mock_topic_name("topic")
-  {
-    qos_profile = rmw_qos_profile_default;
-
-    buffer_ = std::make_shared<intra_process_buffer::mock::IntraProcessBuffer<MessageT>>();
-  }
-
-  void
-  provide_intra_process_message(std::shared_ptr<const MessageT> msg)
-  {
-    buffer_->add(msg);
-  }
-
-  void
-  provide_intra_process_message(std::unique_ptr<MessageT> msg)
-  {
-    buffer_->add(std::move(msg));
-  }
-
-  std::uintptr_t
-  pop()
-  {
-    std::uintptr_t ptr;
-    buffer_->pop(ptr);
-    return ptr;
-  }
-
-  bool
-  use_take_shared_method() const
-  {
-    return take_shared_method;
-  }
 
   rmw_qos_profile_t
   get_actual_qos()
@@ -240,14 +201,54 @@ public:
   const char *
   get_topic_name()
   {
-    return mock_topic_name;
+    return topic_name;
   }
 
   rmw_qos_profile_t qos_profile;
-  const char * mock_topic_name;
+  const char * topic_name;
+};
+
+template<typename MessageT>
+class SubscriptionIntraProcess : public SubscriptionIntraProcessBase
+{
+public:
+  RCLCPP_SMART_PTR_DEFINITIONS(SubscriptionIntraProcess)
+
+  SubscriptionIntraProcess()
+  : take_shared_method(false)
+  {
+    buffer = std::make_unique<intra_process_buffer::mock::IntraProcessBuffer<MessageT>>();
+  }
+
+  void
+  provide_intra_process_message(std::shared_ptr<const MessageT> msg)
+  {
+    buffer->add(msg);
+  }
+
+  void
+  provide_intra_process_message(std::unique_ptr<MessageT> msg)
+  {
+    buffer->add(std::move(msg));
+  }
+
+  std::uintptr_t
+  pop()
+  {
+    std::uintptr_t ptr;
+    buffer->pop(ptr);
+    return ptr;
+  }
+
+  bool
+  use_take_shared_method() const
+  {
+    return take_shared_method;
+  }
+
   bool take_shared_method;
 
-  std::shared_ptr<intra_process_buffer::mock::IntraProcessBuffer<MessageT>> buffer_;
+  typename intra_process_buffer::mock::IntraProcessBuffer<MessageT>::UniquePtr buffer;
 };
 
 }  // namespace mock
@@ -347,7 +348,7 @@ TEST(TestIntraProcessManager, add_pub_sub) {
 
   auto p2 = std::make_shared<PublisherT>();
   p2->qos_profile.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
-  p2->mock_topic_name = "different_topic_name";
+  p2->topic_name = "different_topic_name";
 
   auto s1 = std::make_shared<SubscriptionIntraProcessT>();
   s1->qos_profile.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
