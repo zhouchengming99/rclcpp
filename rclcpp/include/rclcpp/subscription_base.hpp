@@ -154,6 +154,7 @@ public:
     uint64_t intra_process_subscription_id,
     IntraProcessManagerWeakPtr weak_ipm);
 
+  RCLCPP_PUBLIC
   uint64_t
   get_intra_process_id() const;
 

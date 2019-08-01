@@ -358,9 +358,13 @@ private:
   static uint64_t
   get_next_unique_id();
 
-  void insert_sub_id_for_pub(uint64_t sub_id, uint64_t pub_id, bool use_take_shared_method);
+  RCLCPP_PUBLIC
+  void
+  insert_sub_id_for_pub(uint64_t sub_id, uint64_t pub_id, bool use_take_shared_method);
 
-  bool can_communicate(PublisherInfo pub_info, SubscriptionInfo sub_info) const;
+  RCLCPP_PUBLIC
+  bool
+  can_communicate(PublisherInfo pub_info, SubscriptionInfo sub_info) const;
 
   template<typename MessageT>
   void

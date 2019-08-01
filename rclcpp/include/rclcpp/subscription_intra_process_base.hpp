@@ -36,10 +36,14 @@ class SubscriptionIntraProcessBase : public rclcpp::Waitable
 public:
   RCLCPP_SMART_PTR_ALIASES_ONLY(SubscriptionIntraProcessBase)
 
+  RCLCPP_PUBLIC
   SubscriptionIntraProcessBase(const std::string & topic_name, rmw_qos_profile_t qos_profile)
   : topic_name_(topic_name), qos_profile_(qos_profile)
   {}
 
+  virtual ~SubscriptionIntraProcessBase() = default;
+
+  RCLCPP_PUBLIC
   size_t
   get_number_of_ready_guard_conditions() {return 1;}
 
@@ -56,9 +60,11 @@ public:
   virtual bool
   use_take_shared_method() const = 0;
 
+  RCLCPP_PUBLIC
   const char *
   get_topic_name() const;
 
+  RCLCPP_PUBLIC
   rmw_qos_profile_t
   get_actual_qos() const;
 
