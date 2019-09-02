@@ -98,7 +98,8 @@ TEST_F(TestPublisher, construction_and_destruction) {
   }
 
   {
-    ASSERT_THROW({
+    ASSERT_THROW(
+    {
       auto publisher = node->create_publisher<IntraProcessMessage>("invalid_topic?", 42);
     }, rclcpp::exceptions::InvalidTopicNameError);
   }
@@ -229,7 +230,8 @@ TEST_F(TestPublisherSub, construction_and_destruction) {
   }
 
   {
-    ASSERT_THROW({
+    ASSERT_THROW(
+    {
       auto publisher = subnode->create_publisher<IntraProcessMessage>("invalid_topic?", 42);
     }, rclcpp::exceptions::InvalidTopicNameError);
   }
