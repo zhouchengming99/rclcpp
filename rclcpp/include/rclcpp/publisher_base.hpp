@@ -75,7 +75,7 @@ public:
     const rcl_publisher_options_t & publisher_options);
 
   RCLCPP_PUBLIC
-  ~PublisherBase();
+  virtual ~PublisherBase();
 
   /// Get the topic that this publisher publishes on.
   /** \return The topic name. */

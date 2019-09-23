@@ -83,7 +83,7 @@ create_publisher(
     use_intra_process
   );
   node_topics->add_publisher(pub, options.callback_group);
-  return std::static_pointer_cast<PublisherT>(pub);
+  return std::dynamic_pointer_cast<PublisherT>(pub);
 }
 
 }  // namespace rclcpp
