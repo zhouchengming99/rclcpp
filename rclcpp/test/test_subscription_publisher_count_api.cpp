@@ -17,6 +17,7 @@
 #include <iostream>
 #include <string>
 #include <memory>
+#include <vector>
 
 #include "rclcpp/exceptions.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -92,32 +93,35 @@ TEST_P(TestSubscriptionPublisherCount, increasing_and_decreasing_counts)
 
 auto get_new_context()
 {
-  auto context = rclcpp::Context::make_shared();
+  auto context = rclcpp::contexts::default_context::DefaultContext::make_shared();
   context->init(0, nullptr);
   return context;
 }
 
-TestParameters parameters[] = {
-  /*
-     Testing subscription publisher count api.
-     One context.
-   */
-  {
-    rclcpp::NodeOptions(),
-    "one_context_test"
-  },
-  /*
-     Testing subscription publisher count api.
-     Two contexts.
-   */
-  {
-    rclcpp::NodeOptions().context(get_new_context()),
-    "two_contexts_test"
-  }
-};
+auto get_parameters()
+{
+  return std::vector<TestParameters> {
+    /*
+      Testing subscription publisher count api.
+      One context.
+    */
+    {
+      rclcpp::NodeOptions(),
+      "one_context_test"
+    },
+    /*
+      Testing subscription publisher count api.
+      Two contexts.
+    */
+    {
+      rclcpp::NodeOptions().context(get_new_context()),
+      "two_contexts_test"
+    }
+  };
+}
 
 INSTANTIATE_TEST_CASE_P(
   TestWithDifferentNodeOptions,
   TestSubscriptionPublisherCount,
-  testing::ValuesIn(parameters),
+  testing::ValuesIn(get_parameters()),
   testing::PrintToStringParamName());

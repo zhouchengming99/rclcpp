@@ -25,3 +25,12 @@ rclcpp::contexts::default_context::get_global_default_context()
   static DefaultContext::SharedPtr default_context = DefaultContext::make_shared();
   return default_context;
 }
+
+void
+DefaultContext::init(
+  int argc,
+  char const * const argv[],
+  const rclcpp::InitOptions & init_options)
+{
+  return this->init_impl(argc, argv, init_options, true);
+}

@@ -32,13 +32,16 @@ static std::vector<std::weak_ptr<rclcpp::Context>> g_contexts;
 using rclcpp::Context;
 
 Context::Context()
-: rcl_context_(nullptr), shutdown_reason_("") {}
+: has_static_storage_(false), rcl_context_(nullptr), shutdown_reason_("") {}
 
 Context::~Context()
 {
   // acquire the init lock to prevent race conditions with init and shutdown
   // this will not prevent errors, but will maybe make them easier to reproduce
   std::lock_guard<std::recursive_mutex> lock(init_mutex_);
+  if (has_static_storage_) {
+    return;  // leak intentionally
+  }
   try {
     this->shutdown("context destructor was called while still not shutdown");
     // at this point it is shutdown and cannot reinit
@@ -79,12 +82,30 @@ Context::init(
   char const * const argv[],
   const rclcpp::InitOptions & init_options)
 {
+  return this->init_impl(argc, argv, init_options, false);
+}
+
+void
+Context::init_impl(
+  int argc,
+  char const * const argv[],
+  const rclcpp::InitOptions & init_options,
+  bool has_static_storage)
+{
   std::lock_guard<std::recursive_mutex> init_lock(init_mutex_);
+  has_static_storage_ = has_static_storage;
   if (this->is_valid()) {
     throw rclcpp::ContextAlreadyInitialized();
   }
   this->clean_up();
-  rcl_context_.reset(new rcl_context_t, __delete_context);
+  auto rcl_context_unique_ptr = std::make_unique<rcl_context_t>();
+  if (has_static_storage) {
+    // intentionally leak memory
+    has_static_storage_ = has_static_storage;
+    rcl_context_.reset(rcl_context_unique_ptr.release());
+  } else {
+    rcl_context_.reset(rcl_context_unique_ptr.release(), __delete_context);
+  }
   *rcl_context_.get() = rcl_get_zero_initialized_context();
   rcl_ret_t ret = rcl_init(argc, argv, init_options.get_rcl_init_options(), rcl_context_.get());
   if (RCL_RET_OK != ret) {

@@ -328,8 +328,18 @@ protected:
   void
   clean_up();
 
+  virtual
+  void
+  init_impl(
+    int argc,
+    char const * const argv[],
+    const rclcpp::InitOptions & init_options,
+    bool has_static_storage);
+
 private:
   RCLCPP_DISABLE_COPY(Context)
+
+  bool has_static_storage_;
 
   // This mutex is recursive so that the destructor can ensure atomicity
   // between is_initialized and shutdown.

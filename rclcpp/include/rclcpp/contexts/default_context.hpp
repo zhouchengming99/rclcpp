@@ -32,6 +32,13 @@ public:
 
   RCLCPP_PUBLIC
   DefaultContext();
+
+  RCLCPP_PUBLIC
+  void
+  init(
+    int argc,
+    char const * const argv[],
+    const rclcpp::InitOptions & init_options = rclcpp::InitOptions()) override;
 };
 
 RCLCPP_PUBLIC
