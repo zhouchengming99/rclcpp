@@ -71,11 +71,17 @@ Node::create_publisher(
   const rclcpp::QoS & qos,
   const PublisherOptionsWithAllocator<AllocatorT> & options)
 {
-  return rclcpp::create_publisher<MessageT, AllocatorT, PublisherT>(
-    *this,
+  // Create the publisher.
+  auto pub = node_topics_->create_publisher(
     extend_name_with_sub_namespace(topic_name, this->get_sub_namespace()),
-    qos,
-    options);
+    rclcpp::create_publisher_factory<MessageT, AllocatorT, PublisherT>(options),
+    qos
+  );
+
+  // Add the publisher to the node topics interface.
+  node_topics_->add_publisher(pub, options.callback_group);
+
+  return std::dynamic_pointer_cast<PublisherT>(pub);
 }
 
 template<
